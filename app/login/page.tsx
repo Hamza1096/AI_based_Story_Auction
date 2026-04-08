@@ -139,9 +139,9 @@ export default function LoginPage() {
             </div>
 
             <div className="flex justify-end pt-1 pb-4">
-              <a href="#" className="text-xs text-stone-500 hover:text-amber-700 dark:hover:text-amber-500 transition-colors font-serif italic">
+              <Link href="/forgot-password" className="text-xs text-stone-500 hover:text-amber-700 dark:hover:text-amber-500 transition-colors font-serif italic">
                 Lost your place?
-              </a>
+              </Link>
             </div>
 
             <button
