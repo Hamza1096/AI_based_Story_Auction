@@ -53,17 +53,17 @@ export const authOptions: AuthOptions = {
           const existingUser = await User.findOne({ email: user.email });
           
           if (!existingUser) {
-            const newUser = await User.create({
+            const createdUser = await User.create({
               name: user.name,
               email: user.email,
               role: "USER",
               // No password or dateOfBirth generated here since it is OAuth
             });
-            user.id = newUser._id.toString();
-            (user as any).role = newUser.role;
+            user.id = createdUser._id.toString();
+            (user as { id?: string; role?: string }).role = createdUser.role;
           } else {
             user.id = existingUser._id.toString();
-            (user as any).role = existingUser.role;
+            (user as { id?: string; role?: string }).role = existingUser.role;
           }
           return true;
         } catch (error) {
@@ -76,7 +76,7 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role || "USER";
+        token.role = (user as { id?: string; role?: string }).role || "USER";
       }
       return token;
     },

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -30,7 +29,8 @@ export default function ForgotPasswordPage() {
       } else {
         setError(data.message || "Failed to locate inscription.");
       }
-    } catch (err) {
+    } catch (error) {
+      console.error(error);
       setError("The weave is currently unstable.");
     }
     setLoading(false);

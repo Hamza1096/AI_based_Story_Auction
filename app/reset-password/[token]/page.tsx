@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import Link from "next/link";
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -43,7 +42,8 @@ export default function ResetPasswordPage() {
       } else {
         setError(data.message);
       }
-    } catch (err) {
+    } catch (error) {
+      console.error(error);
       setError("The weave is currently unstable. Try again.");
     }
     setLoading(false);

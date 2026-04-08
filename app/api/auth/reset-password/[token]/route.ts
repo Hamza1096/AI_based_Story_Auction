@@ -39,7 +39,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ toke
     await user.save();
 
     return NextResponse.json({ message: "Your Secret Phrase has been forged anew." }, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "An unexpected error occurred";
+    return NextResponse.json({ message: msg }, { status: 500 });
   }
 }

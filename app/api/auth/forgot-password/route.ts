@@ -47,7 +47,8 @@ export async function POST(req: NextRequest) {
       });
 
       return NextResponse.json({ message: "A raven has been sent to your inscribed email." }, { status: 200 });
-    } catch (err) {
+    } catch (error) {
+      console.error(error);
       user.resetPasswordToken = undefined;
       user.resetPasswordExpires = undefined;
 
@@ -55,7 +56,8 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({ message: "Email could not be dispatched." }, { status: 500 });
     }
-  } catch (error: any) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "Error";
+    return NextResponse.json({ message: msg }, { status: 500 });
   }
 }
