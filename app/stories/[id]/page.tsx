@@ -1,0 +1,300 @@
+"use client";
+
+import { useSession } from "next-auth/react";
+import { useRouter, useParams } from "next/navigation";
+import { useEffect, useState, use } from "react";
+import Link from "next/link";
+
+interface Story {
+  _id: string;
+  title: string;
+  genre: string;
+  description: string;
+  rules: string[];
+  authorName: string;
+  status: "active" | "completed" | "paused";
+  chapterCount: number;
+  participantCount: number;
+  createdAt: string;
+}
+
+const GENRE_COLOURS: Record<string, { bg: string; text: string; border: string }> = {
+  Fantasy:              { bg: "bg-violet-500/10", text: "text-violet-300", border: "border-violet-500/20" },
+  "Science Fiction":    { bg: "bg-cyan-500/10",   text: "text-cyan-300",   border: "border-cyan-500/20" },
+  Mystery:              { bg: "bg-yellow-500/10", text: "text-yellow-300", border: "border-yellow-500/20" },
+  Romance:              { bg: "bg-pink-500/10",   text: "text-pink-300",   border: "border-pink-500/20" },
+  Horror:               { bg: "bg-red-500/10",    text: "text-red-300",    border: "border-red-500/20" },
+  Thriller:             { bg: "bg-orange-500/10", text: "text-orange-300", border: "border-orange-500/20" },
+  Adventure:            { bg: "bg-green-500/10",  text: "text-green-300",  border: "border-green-500/20" },
+  "Historical Fiction": { bg: "bg-amber-500/10",  text: "text-amber-300",  border: "border-amber-500/20" },
+  Comedy:               { bg: "bg-lime-500/10",   text: "text-lime-300",   border: "border-lime-500/20" },
+  Drama:                { bg: "bg-indigo-500/10", text: "text-indigo-300", border: "border-indigo-500/20" },
+  Other:                { bg: "bg-stone-500/10",  text: "text-stone-300",  border: "border-stone-500/20" },
+};
+
+const STATUS_CONFIG = {
+  active:    { label: "Active",    dot: "bg-emerald-400", text: "text-emerald-400" },
+  paused:    { label: "Paused",    dot: "bg-yellow-400",  text: "text-yellow-400" },
+  completed: { label: "Completed", dot: "bg-stone-400",   text: "text-stone-400" },
+};
+
+export default function StoryDetailPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const params = useParams() as { id: string };
+
+  const [story, setStory] = useState<Story | null>(null);
+  const [loadingStory, setLoadingStory] = useState(true);
+
+  // Proposal State
+  const [proposalContent, setProposalContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState("");
+
+  const MAX_PROPOSAL_LENGTH = 500;
+
+  // Fetch Story
+  useEffect(() => {
+    if (!params.id) return;
+    
+    (async () => {
+      try {
+        const res = await fetch(`/api/stories/${params.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setStory(data.story);
+        } else {
+          setStory(null);
+        }
+      } catch (err) {
+        setStory(null);
+      } finally {
+        setLoadingStory(false);
+      }
+    })();
+  }, [params.id]);
+
+  // Auth Guard
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login");
+    }
+  }, [status, router]);
+
+  if (status === "loading" || loadingStory) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0f1a]">
+        <div className="w-8 h-8 border-2 border-amber-500/40 border-t-amber-400 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!session || !story) {
+    return (
+      <div className="min-h-screen bg-[#0a0f1a] flex flex-col items-center justify-center text-stone-200">
+        <h2 className="text-xl font-semibold mb-2">Story Not Found</h2>
+        <p className="text-stone-500 mb-6">The story you are looking for does not exist or has been removed.</p>
+        <Link href="/stories" className="px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-amber-50 text-sm font-medium transition-all shadow-lg shadow-amber-900/20">
+          Back to Browse
+        </Link>
+      </div>
+    );
+  }
+
+  const genre = GENRE_COLOURS[story.genre] ?? GENRE_COLOURS.Other;
+  const statusCfg = STATUS_CONFIG[story.status];
+  const proposalLength = proposalContent.length;
+
+  const handleProposalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError("");
+    setSubmitSuccess("");
+
+    if (proposalLength === 0) {
+      setSubmitError("Proposal concept cannot be empty.");
+      return;
+    }
+
+    if (proposalLength > MAX_PROPOSAL_LENGTH) {
+      setSubmitError(`Proposal exceeds the maximum length of ${MAX_PROPOSAL_LENGTH} characters.`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/stories/${story._id}/proposals`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: proposalContent }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setSubmitError(data.error || "Failed to submit proposal.");
+      } else {
+        setSubmitSuccess("Proposal submitted successfully!");
+        setProposalContent(""); // clear the input on success
+      }
+    } catch (err) {
+      setSubmitError("A network error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0a0f1a] text-stone-200">
+      {/* Ambient glows */}
+      <div className="fixed top-0 left-[15%] w-[600px] h-[400px] bg-amber-700/4 blur-[140px] rounded-full pointer-events-none z-0" />
+      <div className="fixed bottom-0 right-[10%] w-[400px] h-[400px] bg-teal-700/4 blur-[120px] rounded-full pointer-events-none z-0" />
+
+      {/* Top bar */}
+      <header className="relative z-10 border-b border-white/5 bg-[#0c1220]/80 backdrop-blur-sm">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
+          <Link
+            href="/stories"
+            className="flex items-center gap-2 text-stone-400 hover:text-amber-300 transition-colors text-sm group"
+          >
+            <svg
+              className="w-4 h-4 transition-transform group-hover:-translate-x-0.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Browse Stories
+          </Link>
+          <span className="text-white/10">/</span>
+          <span className="text-stone-300 text-sm font-medium">{story.title.length > 30 ? story.title.slice(0, 30) + '...' : story.title}</span>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="relative z-10 max-w-4xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-10">
+        
+        {/* Left Column: Story Details */}
+        <div className="md:col-span-2 space-y-8">
+          
+          {/* Header Info */}
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[12px] font-medium border ${genre.bg} ${genre.text} ${genre.border}`}>
+                {story.genre}
+              </span>
+              <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${statusCfg.text}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+                {statusCfg.label}
+              </span>
+            </div>
+            
+            <h1 className="text-3xl md:text-4xl font-serif text-amber-50 mb-3 leading-snug">
+              {story.title}
+            </h1>
+            
+            <div className="flex items-center gap-2 text-stone-400 text-sm">
+              <span>By <span className="text-amber-200/80 font-medium">{story.authorName}</span></span>
+              <span className="text-white/10">•</span>
+              <span>{new Date(story.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
+            </div>
+          </div>
+
+          <div className="h-px bg-white/5" />
+
+          {/* Description */}
+          <section>
+            <h2 className="text-lg font-medium text-stone-200 mb-3">The Premise</h2>
+            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6 text-stone-400 text-sm leading-relaxed whitespace-pre-wrap">
+              {story.description}
+            </div>
+          </section>
+
+          {/* Rules */}
+          {story.rules && story.rules.length > 0 && (
+            <section>
+              <h2 className="text-lg font-medium text-stone-200 mb-3">Story Constraints</h2>
+              <ul className="space-y-3 bg-red-950/10 border border-red-900/20 rounded-xl p-6 text-sm text-stone-300">
+                {story.rules.map((rule, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <span className="text-red-400/80 font-mono text-xs mt-0.5">{index + 1}.</span>
+                    <span className="leading-relaxed">{rule}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        {/* Right Column: Interaction panel */}
+        <div className="space-y-6">
+          <div className="bg-white/[0.03] border border-white/10 rounded-xl p-6 sticky top-24">
+            <h3 className="text-lg font-medium text-amber-50 mb-2">Submit a Proposal</h3>
+            <p className="text-xs text-stone-400 mb-6 leading-relaxed">
+              Have an idea on how this story should progress? Pitch your line or twist below! Keep it within limits so it can be passed to our AI modules. 
+              <br/><br/>
+              <span className="text-amber-500/80 font-medium">Note: Only one proposal per story per day.</span>
+            </p>
+
+            <form onSubmit={handleProposalSubmit} className="space-y-4">
+              <div className="space-y-2 relative">
+                <textarea
+                  value={proposalContent}
+                  onChange={(e) => setProposalContent(e.target.value)}
+                  disabled={isSubmitting || story.status !== "active"}
+                  rows={6}
+                  placeholder="The rogue automaton slowly pointed its rusted finger towards the northern door..."
+                  className="w-full bg-[#0a0f1a] border border-white/10 rounded-lg px-4 py-3.5 text-stone-200 placeholder:text-stone-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all text-sm resize-none disabled:opacity-50"
+                  required
+                />
+                <span
+                  className={`absolute right-3 bottom-3 text-[10px] ${
+                    proposalLength > MAX_PROPOSAL_LENGTH ? "text-red-400" : "text-stone-600"
+                  }`}
+                >
+                  {proposalLength}/{MAX_PROPOSAL_LENGTH}
+                </span>
+              </div>
+
+              {submitError && (
+                <div className="px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
+                  {submitError}
+                </div>
+              )}
+
+              {submitSuccess && (
+                <div className="px-3 py-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs">
+                  {submitSuccess}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting || proposalLength > MAX_PROPOSAL_LENGTH || proposalLength === 0 || story.status !== "active"}
+                className="w-full relative overflow-hidden px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 disabled:bg-stone-800 disabled:text-stone-500 text-amber-50 font-medium text-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed shadow-lg shadow-amber-900/20 flex justify-center items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-stone-400/40 border-t-stone-200 rounded-full animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Submit Proposal
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  );
+}

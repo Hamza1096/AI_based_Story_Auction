@@ -82,75 +82,77 @@ function StoryCard({ story }: { story: Story }) {
   const statusCfg = STATUS_CONFIG[story.status];
 
   return (
-    <article className="group relative flex flex-col bg-white/[0.03] hover:bg-white/[0.055] border border-white/8 hover:border-white/15 rounded-xl p-5 transition-all duration-200 overflow-hidden">
-      {/* Hover glow */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-br from-amber-600/3 to-transparent rounded-xl" />
+    <Link href={`/stories/${story._id}`} className="block h-full cursor-pointer">
+      <article className="group h-full relative flex flex-col bg-white/[0.03] hover:bg-white/[0.055] border border-white/8 hover:border-white/15 rounded-xl p-5 transition-all duration-200 overflow-hidden">
+        {/* Hover glow */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-br from-amber-600/3 to-transparent rounded-xl" />
 
-      {/* Top row */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${genre.bg} ${genre.text} ${genre.border}`}>
-            {story.genre}
-          </span>
-          <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${statusCfg.text}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-            {statusCfg.label}
-          </span>
-        </div>
-        <span className="text-[11px] text-stone-600 shrink-0 mt-0.5">{timeAgo(story.createdAt)}</span>
-      </div>
-
-      {/* Title */}
-      <h2 className="text-base font-semibold text-stone-100 group-hover:text-amber-100 transition-colors mb-1.5 leading-snug line-clamp-2">
-        {story.title}
-      </h2>
-
-      {/* Description */}
-      <p className="text-xs text-stone-500 leading-relaxed line-clamp-3 mb-4 flex-1">
-        {story.description}
-      </p>
-
-      {/* Rules */}
-      {story.rules.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-1.5">
-          {story.rules.slice(0, 2).map((rule, i) => (
-            <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] bg-white/[0.04] border border-white/8 text-stone-500">
-              {rule.length > 32 ? rule.slice(0, 32) + "…" : rule}
+        {/* Top row */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${genre.bg} ${genre.text} ${genre.border}`}>
+              {story.genre}
             </span>
-          ))}
-          {story.rules.length > 2 && (
-            <span className="text-[10px] text-stone-600">+{story.rules.length - 2} more</span>
-          )}
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-white/5">
-        {/* Author */}
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0">
-            {getInitials(story.authorName)}
+            <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${statusCfg.text}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+              {statusCfg.label}
+            </span>
           </div>
-          <span className="text-[11px] text-stone-500 max-w-[100px] truncate">{story.authorName}</span>
+          <span className="text-[11px] text-stone-600 shrink-0 mt-0.5">{timeAgo(story.createdAt)}</span>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1 text-[11px] text-stone-600">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-            {story.chapterCount}
-          </span>
-          <span className="flex items-center gap-1 text-[11px] text-stone-600">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
-            </svg>
-            {story.participantCount}
-          </span>
+        {/* Title */}
+        <h2 className="text-base font-semibold text-stone-100 group-hover:text-amber-100 transition-colors mb-1.5 leading-snug line-clamp-2">
+          {story.title}
+        </h2>
+
+        {/* Description */}
+        <p className="text-xs text-stone-500 leading-relaxed line-clamp-3 mb-4 flex-1">
+          {story.description}
+        </p>
+
+        {/* Rules */}
+        {story.rules.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-1.5">
+            {story.rules.slice(0, 2).map((rule, i) => (
+              <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] bg-white/[0.04] border border-white/8 text-stone-500">
+                {rule.length > 32 ? rule.slice(0, 32) + "…" : rule}
+              </span>
+            ))}
+            {story.rules.length > 2 && (
+              <span className="text-[10px] text-stone-600">+{story.rules.length - 2} more</span>
+            )}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-3 border-t border-white/5">
+          {/* Author */}
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0">
+              {getInitials(story.authorName)}
+            </div>
+            <span className="text-[11px] text-stone-500 max-w-[100px] truncate">{story.authorName}</span>
+          </div>
+
+          {/* Stats */}
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1 text-[11px] text-stone-600">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              {story.chapterCount}
+            </span>
+            <span className="flex items-center gap-1 text-[11px] text-stone-600">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
+              </svg>
+              {story.participantCount}
+            </span>
+          </div>
         </div>
-      </div>
-    </article>
+      </article>
+    </Link>
   );
 }
 
