@@ -1,8 +1,12 @@
 import connectToDatabase from "@/lib/mongodb";
 import Proposal from "@/models/Proposal";
+import Bid from "@/models/Bid";
+import User from "@/models/User";
+import Transaction from "@/models/Transaction";
 
 /**
- * Closes all auctions whose proposals are older than 24 hours.
+ * Closes all pending auctions at midnight.
+ * As per requirements, this closes all pending proposals no matter the time created.
  * The winner is the proposal with the highest totalBidAmount.
  * Tie-breaker: earliest createdAt wins (AS-19).
  */
@@ -10,13 +14,9 @@ export async function closeExpiredAuctions() {
   try {
     await connectToDatabase();
 
-    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
-    const cutoffDate = new Date(Date.now() - TWENTY_FOUR_HOURS);
-
-    // Find all pending proposals that are older than 24 hours
+    // Find all pending proposals no matter the time created
     const expiredProposals = await Proposal.find({
-      status: "pending",
-      createdAt: { $lte: cutoffDate },
+      status: "pending"
     })
       .select("storyId")
       .lean();
@@ -44,9 +44,28 @@ export async function closeExpiredAuctions() {
         // Atomically mark winner — $set avoids any risk of overwriting other fields via .save()
         await Proposal.findByIdAndUpdate(proposals[0]._id, { $set: { status: "winner" } });
 
-        // Mark all other proposals as losers
+        // Mark all other proposals as losers and refund their bids
         for (let i = 1; i < proposals.length; i++) {
-          await Proposal.findByIdAndUpdate(proposals[i]._id, { $set: { status: "loser" } });
+          const loserProposalId = proposals[i]._id;
+          await Proposal.findByIdAndUpdate(loserProposalId, { $set: { status: "loser" } });
+
+          // Refund bids for this losing proposal
+          const losingBids = await Bid.find({ proposalId: loserProposalId });
+          for (const bid of losingBids) {
+            // Refund the user wallet
+            await User.findByIdAndUpdate(bid.userId, {
+              $inc: { walletBalance: bid.amount },
+            });
+
+            // Create a transaction record for the refund
+            await Transaction.create({
+              userId: bid.userId,
+              type: "credit",
+              amount: bid.amount,
+              status: "completed",
+              description: `Refund for unaccepted proposal (ID: ${loserProposalId})`,
+            });
+          }
         }
 
         closedCount++;

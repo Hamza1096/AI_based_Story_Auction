@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import Link from "next/link";
 
 interface Story {
@@ -58,6 +58,10 @@ export default function StoryDetailPage() {
   const [biddingStatus, setBiddingStatus] = useState<Record<string, boolean>>({});
   const [bidMessage, setBidMessage] = useState<Record<string, { text: string; success: boolean }>>({});
 
+  // Countdown State
+  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
+  const isClosingRef = useRef(false);
+
   const MAX_PROPOSAL_LENGTH = 500;
 
   // Fetch Story
@@ -99,6 +103,60 @@ export default function StoryDetailPage() {
   useEffect(() => {
     fetchProposals();
   }, [params.id]);
+
+  // Handle countdown timer based on PKT midnight
+  useEffect(() => {
+    const calculateTimeLeft = async () => {
+      if (!story || story.status !== "active") {
+        setTimeLeft(null);
+        return;
+      }
+
+      // Convert current time to PKT string to handle timezone correctly
+      const nowStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Karachi" });
+      const nowPkt = new Date(nowStr);
+
+      // Set target to Midnight (12:00 AM) PKT
+      const midnightPkt = new Date(nowPkt);
+      midnightPkt.setHours(24, 0, 0, 0);
+
+      let diff = midnightPkt.getTime() - nowPkt.getTime();
+      
+      // Auto-close trigger when time hits zero (roughly within a tight window to avoid spam)
+      if (diff <= 1000 && diff >= -1000 && !isClosingRef.current) {
+        isClosingRef.current = true;
+        try {
+          // Trigger the closure background job automatically
+          await fetch('/api/cron/auction-close');
+          // Wait briefly, then re-fetch proposals to show the updated (winner/loser) states
+          setTimeout(() => fetchProposals(), 2000);
+        } catch (err) {
+          console.error("Failed to auto-close auction", err);
+        }
+        setTimeout(() => { isClosingRef.current = false; }, 60000); // Backoff for 1 minute
+      }
+
+      // If Target time has already passed today, set for tomorrow
+      if (diff < 0) {
+        midnightPkt.setDate(midnightPkt.getDate() + 1);
+        diff = midnightPkt.getTime() - nowPkt.getTime();
+      }
+
+      if (diff > 0) {
+        setTimeLeft({
+          hours: Math.floor(diff / (1000 * 60 * 60)),
+          minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((diff % (1000 * 60)) / 1000),
+        });
+      } else {
+        setTimeLeft(null); 
+      }
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(timer);
+  }, [story]);
 
   // Auth Guard
   useEffect(() => {
@@ -242,7 +300,7 @@ export default function StoryDetailPage() {
 
           {/* Header Info */}
           <div>
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
               <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[12px] font-medium border ${genre.bg} ${genre.text} ${genre.border}`}>
                 {story.genre}
               </span>
@@ -250,6 +308,16 @@ export default function StoryDetailPage() {
                 <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
                 {statusCfg.label}
               </span>
+              
+              {/* Countdown Timer */}
+              {story.status === "active" && timeLeft && (
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[12px] font-medium bg-red-500/10 text-red-300 border border-red-500/20 ml-auto">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Closes in {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')} (PKT)
+                </span>
+              )}
             </div>
 
             <h1 className="text-3xl md:text-4xl font-serif text-amber-50 mb-3 leading-snug">

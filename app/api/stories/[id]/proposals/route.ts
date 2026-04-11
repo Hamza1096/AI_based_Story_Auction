@@ -120,9 +120,12 @@ export async function GET(
 
     await connectToDatabase();
 
-    // Fetch proposals for this story
+    // Fetch proposals for this story, excluding those marked as 'loser'
     // Sorting by totalBidAmount DESC, then createdAt ASC
-    const proposals = await Proposal.find({ storyId: id }).sort({ totalBidAmount: -1, createdAt: 1 });
+    const proposals = await Proposal.find({ 
+      storyId: id,
+      status: { $ne: "loser" } 
+    }).sort({ totalBidAmount: -1, createdAt: 1 });
 
     return NextResponse.json({ proposals }, { status: 200 });
   } catch (error) {
