@@ -158,9 +158,10 @@ function DashboardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [stories, setStories]       = useState<Story[]>([]);
+  const [stories, setStories]             = useState<Story[]>([]);
   const [loadingStories, setLoadingStories] = useState(true);
   const [successBanner, setSuccessBanner]   = useState(false);
+  const [walletBalance, setWalletBalance]   = useState<number | null>(null);
 
   // Auth guard
   useEffect(() => {
@@ -177,7 +178,7 @@ function DashboardInner() {
     }
   }, [searchParams]);
 
-  // Fetch stories
+  // Fetch stories + wallet balance
   useEffect(() => {
     if (status !== "authenticated") return;
 
@@ -192,6 +193,18 @@ function DashboardInner() {
         // silently fail — empty state will show
       } finally {
         setLoadingStories(false);
+      }
+    })();
+
+    (async () => {
+      try {
+        const res = await fetch("/api/wallet/balance");
+        if (res.ok) {
+          const data = await res.json();
+          setWalletBalance(data.balance ?? 0);
+        }
+      } catch {
+        setWalletBalance(0);
       }
     })();
   }, [status]);
@@ -239,16 +252,21 @@ function DashboardInner() {
             <Link href="/stories" className="px-3 py-1.5 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-white/5 text-xs transition-all">
               Browse Stories
             </Link>
+            <Link href="/dashboard/wallet" className="px-3 py-1.5 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-white/5 text-xs transition-all">
+              Wallet
+            </Link>
           </nav>
 
           {/* Right: user + wallet + signout */}
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/8">
+            <Link href="/dashboard/wallet" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/8 hover:border-amber-500/30 transition-colors">
               <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
-              <span className="text-xs font-medium text-amber-200">0 coins</span>
-            </div>
+              <span className="text-xs font-medium text-amber-200">
+                {walletBalance === null ? "…" : `£${walletBalance.toFixed(2)}`}
+              </span>
+            </Link>
 
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-[11px] font-bold text-white shadow-md">
@@ -353,17 +371,6 @@ function DashboardInner() {
               accent: "text-stone-400",
               hint: "finished tales",
             },
-            {
-              label: "Wallet",
-              value: "0",
-              icon: (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-              ),
-              accent: "text-teal-400",
-              hint: "bid coins",
-            },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -377,6 +384,27 @@ function DashboardInner() {
               <div className="text-[11px] text-stone-600 mt-0.5">{stat.hint}</div>
             </div>
           ))}
+
+          {/* Wallet stat — separate because it's dynamic and clickable */}
+          <Link
+            href="/dashboard/wallet"
+            className="relative overflow-hidden bg-white/[0.03] border border-white/8 hover:border-teal-500/20 rounded-xl p-4 transition-colors group"
+          >
+            <div className="flex items-center gap-2 mb-3 text-teal-400">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+              <span className="text-xs font-medium text-stone-400">Wallet</span>
+            </div>
+            <div className="text-2xl font-bold text-teal-400 tabular-nums">
+              {walletBalance === null ? (
+                <div className="h-7 w-20 bg-white/5 rounded-lg animate-pulse" />
+              ) : (
+                `£${walletBalance.toFixed(2)}`
+              )}
+            </div>
+            <div className="text-[11px] text-stone-600 mt-0.5 group-hover:text-teal-600 transition-colors">click to add funds</div>
+          </Link>
         </div>
 
         {/* ── My Stories section ── */}
