@@ -19,23 +19,23 @@ interface Story {
 }
 
 const GENRE_COLOURS: Record<string, { bg: string; text: string; border: string }> = {
-  Fantasy:              { bg: "bg-violet-500/10", text: "text-violet-300", border: "border-violet-500/20" },
-  "Science Fiction":    { bg: "bg-cyan-500/10",   text: "text-cyan-300",   border: "border-cyan-500/20" },
-  Mystery:              { bg: "bg-yellow-500/10", text: "text-yellow-300", border: "border-yellow-500/20" },
-  Romance:              { bg: "bg-pink-500/10",   text: "text-pink-300",   border: "border-pink-500/20" },
-  Horror:               { bg: "bg-red-500/10",    text: "text-red-300",    border: "border-red-500/20" },
-  Thriller:             { bg: "bg-orange-500/10", text: "text-orange-300", border: "border-orange-500/20" },
-  Adventure:            { bg: "bg-green-500/10",  text: "text-green-300",  border: "border-green-500/20" },
-  "Historical Fiction": { bg: "bg-amber-500/10",  text: "text-amber-300",  border: "border-amber-500/20" },
-  Comedy:               { bg: "bg-lime-500/10",   text: "text-lime-300",   border: "border-lime-500/20" },
-  Drama:                { bg: "bg-indigo-500/10", text: "text-indigo-300", border: "border-indigo-500/20" },
-  Other:                { bg: "bg-stone-500/10",  text: "text-stone-300",  border: "border-stone-500/20" },
+  Fantasy: { bg: "bg-violet-500/10", text: "text-violet-300", border: "border-violet-500/20" },
+  "Science Fiction": { bg: "bg-cyan-500/10", text: "text-cyan-300", border: "border-cyan-500/20" },
+  Mystery: { bg: "bg-yellow-500/10", text: "text-yellow-300", border: "border-yellow-500/20" },
+  Romance: { bg: "bg-pink-500/10", text: "text-pink-300", border: "border-pink-500/20" },
+  Horror: { bg: "bg-red-500/10", text: "text-red-300", border: "border-red-500/20" },
+  Thriller: { bg: "bg-orange-500/10", text: "text-orange-300", border: "border-orange-500/20" },
+  Adventure: { bg: "bg-green-500/10", text: "text-green-300", border: "border-green-500/20" },
+  "Historical Fiction": { bg: "bg-amber-500/10", text: "text-amber-300", border: "border-amber-500/20" },
+  Comedy: { bg: "bg-lime-500/10", text: "text-lime-300", border: "border-lime-500/20" },
+  Drama: { bg: "bg-indigo-500/10", text: "text-indigo-300", border: "border-indigo-500/20" },
+  Other: { bg: "bg-stone-500/10", text: "text-stone-300", border: "border-stone-500/20" },
 };
 
 const STATUS_CONFIG = {
-  active:    { label: "Active",    dot: "bg-emerald-400", text: "text-emerald-400" },
-  paused:    { label: "Paused",    dot: "bg-yellow-400",  text: "text-yellow-400" },
-  completed: { label: "Completed", dot: "bg-stone-400",   text: "text-stone-400" },
+  active: { label: "Active", dot: "bg-emerald-400", text: "text-emerald-400" },
+  paused: { label: "Paused", dot: "bg-yellow-400", text: "text-yellow-400" },
+  completed: { label: "Completed", dot: "bg-stone-400", text: "text-stone-400" },
 };
 
 export default function StoryDetailPage() {
@@ -52,12 +52,18 @@ export default function StoryDetailPage() {
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState("");
 
+  const [proposals, setProposals] = useState<any[]>([]);
+  const [loadingProposals, setLoadingProposals] = useState(true);
+  const [bidAmount, setBidAmount] = useState<Record<string, string>>({});
+  const [biddingStatus, setBiddingStatus] = useState<Record<string, boolean>>({});
+  const [bidMessage, setBidMessage] = useState<Record<string, { text: string; success: boolean }>>({});
+
   const MAX_PROPOSAL_LENGTH = 500;
 
   // Fetch Story
   useEffect(() => {
     if (!params.id) return;
-    
+
     (async () => {
       try {
         const res = await fetch(`/api/stories/${params.id}`);
@@ -73,6 +79,25 @@ export default function StoryDetailPage() {
         setLoadingStory(false);
       }
     })();
+  }, [params.id]);
+
+  const fetchProposals = async () => {
+    if (!params.id) return;
+    try {
+      const res = await fetch(`/api/stories/${params.id}/proposals`);
+      if (res.ok) {
+        const data = await res.json();
+        setProposals(data.proposals || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch proposals", err);
+    } finally {
+      setLoadingProposals(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProposals();
   }, [params.id]);
 
   // Auth Guard
@@ -137,6 +162,7 @@ export default function StoryDetailPage() {
       } else {
         setSubmitSuccess("Proposal submitted successfully!");
         setProposalContent(""); // clear the input on success
+        fetchProposals(); // refresh proposals list
       }
     } catch (err) {
       setSubmitError("A network error occurred. Please try again.");
@@ -144,6 +170,40 @@ export default function StoryDetailPage() {
       setIsSubmitting(false);
     }
   };
+
+  const handleBid = async (proposalId: string) => {
+    const amountStr = bidAmount[proposalId];
+    const amount = Number(amountStr);
+    if (!amount || amount < 1) {
+      setBidMessage(prev => ({ ...prev, [proposalId]: { text: "Minimum bid is £1.", success: false } }));
+      setTimeout(() => setBidMessage(prev => { const n = {...prev}; delete n[proposalId]; return n; }), 5000);
+      return;
+    }
+
+    setBiddingStatus(prev => ({ ...prev, [proposalId]: true }));
+    try {
+      const res = await fetch(`/api/proposals/${proposalId}/bid`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBidMessage(prev => ({ ...prev, [proposalId]: { text: data.error || "Failed to place bid.", success: false } }));
+      } else {
+        setBidMessage(prev => ({ ...prev, [proposalId]: { text: "Bid placed successfully!", success: true } }));
+        setBidAmount(prev => ({ ...prev, [proposalId]: "" }));
+        fetchProposals();
+      }
+      setTimeout(() => setBidMessage(prev => { const n = {...prev}; delete n[proposalId]; return n; }), 5000);
+    } catch (err) {
+      setBidMessage(prev => ({ ...prev, [proposalId]: { text: "A network error occurred.", success: false } }));
+      setTimeout(() => setBidMessage(prev => { const n = {...prev}; delete n[proposalId]; return n; }), 5000);
+    } finally {
+      setBiddingStatus(prev => ({ ...prev, [proposalId]: false }));
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-[#0a0f1a] text-stone-200">
@@ -176,10 +236,10 @@ export default function StoryDetailPage() {
 
       {/* Main content */}
       <main className="relative z-10 max-w-4xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-10">
-        
+
         {/* Left Column: Story Details */}
         <div className="md:col-span-2 space-y-8">
-          
+
           {/* Header Info */}
           <div>
             <div className="flex items-center gap-3 mb-4">
@@ -191,11 +251,11 @@ export default function StoryDetailPage() {
                 {statusCfg.label}
               </span>
             </div>
-            
+
             <h1 className="text-3xl md:text-4xl font-serif text-amber-50 mb-3 leading-snug">
               {story.title}
             </h1>
-            
+
             <div className="flex items-center gap-2 text-stone-400 text-sm">
               <span>By <span className="text-amber-200/80 font-medium">{story.authorName}</span></span>
               <span className="text-white/10">•</span>
@@ -227,6 +287,68 @@ export default function StoryDetailPage() {
               </ul>
             </section>
           )}
+
+          {/* Current Proposals */}
+          <section className="pt-8 border-t border-white/5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-stone-200">Current Proposals</h2>
+            </div>
+
+            {loadingProposals ? (
+              <div className="text-stone-500 text-sm">Loading proposals...</div>
+            ) : proposals.length === 0 ? (
+              <div className="text-stone-500 text-sm italic bg-white/[0.02] border border-white/5 rounded-xl p-6 text-center">
+                No proposals yet. Submit the first one!
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {proposals.map(p => (
+                  <div key={p._id} className={`p-5 rounded-xl border ${p.status === 'winner' ? 'bg-emerald-950/20 border-emerald-500/30' : p.status === 'loser' ? 'bg-[#060a12] border-white/5 opacity-50' : 'bg-white/[0.02] border-white/10'}`}>
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-amber-100/90 text-sm">{p.userName}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${p.status === 'winner' ? 'bg-emerald-500/20 text-emerald-400' :
+                            p.status === 'loser' ? 'bg-stone-500/20 text-stone-400' :
+                              'bg-amber-500/20 text-amber-400'
+                          }`}>{p.status}</span>
+                      </div>
+                      <div className="text-sm font-medium text-amber-500">
+                        Total Bids: £{p.totalBidAmount || 0}
+                      </div>
+                    </div>
+                    <p className="text-stone-300 text-sm leading-relaxed mb-4">{p.content}</p>
+
+                    {p.status === 'pending' && (
+                      <div className="pt-3 border-t border-white/5 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="1"
+                            placeholder="Amount (£)"
+                            className="w-28 bg-[#0a0f1a] border border-white/10 rounded-lg px-3 py-1.5 text-stone-200 placeholder:text-stone-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 text-sm"
+                            value={bidAmount[p._id] || ''}
+                            onChange={(e) => setBidAmount(prev => ({ ...prev, [p._id]: e.target.value }))}
+                          />
+                          <button
+                            onClick={() => handleBid(p._id)}
+                            disabled={biddingStatus[p._id]}
+                            className="px-4 py-1.5 text-sm bg-amber-600/20 hover:bg-amber-600/40 text-amber-400 border border-amber-600/30 rounded-lg transition-colors disabled:opacity-50 font-medium"
+                          >
+                            {biddingStatus[p._id] ? 'Placing...' : 'Place Bid'}
+                          </button>
+                        </div>
+                        {bidMessage[p._id] && (
+                          <p className={`text-xs px-1 transition-all ${bidMessage[p._id].success ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {bidMessage[p._id].success ? '✓' : '✕'} {bidMessage[p._id].text}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
 
         {/* Right Column: Interaction panel */}
@@ -234,8 +356,8 @@ export default function StoryDetailPage() {
           <div className="bg-white/[0.03] border border-white/10 rounded-xl p-6 sticky top-24">
             <h3 className="text-lg font-medium text-amber-50 mb-2">Submit a Proposal</h3>
             <p className="text-xs text-stone-400 mb-6 leading-relaxed">
-              Have an idea on how this story should progress? Pitch your line or twist below! Keep it within limits so it can be passed to our AI modules. 
-              <br/><br/>
+              Have an idea on how this story should progress? Pitch your line or twist below! Keep it within limits so it can be passed to our AI modules.
+              <br /><br />
               <span className="text-amber-500/80 font-medium">Note: Only one proposal per story per day.</span>
             </p>
 
@@ -251,9 +373,8 @@ export default function StoryDetailPage() {
                   required
                 />
                 <span
-                  className={`absolute right-3 bottom-3 text-[10px] ${
-                    proposalLength > MAX_PROPOSAL_LENGTH ? "text-red-400" : "text-stone-600"
-                  }`}
+                  className={`absolute right-3 bottom-3 text-[10px] ${proposalLength > MAX_PROPOSAL_LENGTH ? "text-red-400" : "text-stone-600"
+                    }`}
                 >
                   {proposalLength}/{MAX_PROPOSAL_LENGTH}
                 </span>

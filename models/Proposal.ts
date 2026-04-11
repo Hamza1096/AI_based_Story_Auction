@@ -24,8 +24,12 @@ const ProposalSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "winner", "loser"],
       default: "pending",
+    },
+    totalBidAmount: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }

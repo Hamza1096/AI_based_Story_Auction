@@ -83,7 +83,7 @@ export async function POST(
       content: trimmedContent,
       status: "pending",
     });
-    
+
     // Optionally: we can increment the participant count of the story here if needed, 
     // but the SRS mentions just that the user submits a proposal.
     // We could do an upsert or check if user has ever proposed before.
@@ -93,7 +93,7 @@ export async function POST(
       storyId: id,
       userId: session.user.id,
     });
-    
+
     // If userPreviousProposals is exactly 1 (meaning the one we just created), it's a new participant
     if (userPreviousProposals === 1) {
       await Story.findByIdAndUpdate(id, { $inc: { participantCount: 1 } });
@@ -102,6 +102,31 @@ export async function POST(
     return NextResponse.json({ proposal, message: "Proposal submitted successfully!" }, { status: 201 });
   } catch (error) {
     console.error(`[POST /api/stories/[id]/proposals]`, error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const p = await params;
+    const { id } = p;
+
+    if (!id) {
+      return NextResponse.json({ error: "Story ID is required." }, { status: 400 });
+    }
+
+    await connectToDatabase();
+
+    // Fetch proposals for this story
+    // Sorting by totalBidAmount DESC, then createdAt ASC
+    const proposals = await Proposal.find({ storyId: id }).sort({ totalBidAmount: -1, createdAt: 1 });
+
+    return NextResponse.json({ proposals }, { status: 200 });
+  } catch (error) {
+    console.error(`[GET /api/stories/[id]/proposals]`, error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
