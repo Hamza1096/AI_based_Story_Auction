@@ -51,6 +51,9 @@ export default function StoryDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState("");
+  const [isAiExpanding, setIsAiExpanding] = useState(false);
+  const [aiExpandedContent, setAiExpandedContent] = useState("");
+  const [showAiPreview, setShowAiPreview] = useState(false);
 
   const [proposals, setProposals] = useState<any[]>([]);
   const [loadingProposals, setLoadingProposals] = useState(true);
@@ -189,18 +192,17 @@ export default function StoryDetailPage() {
   const statusCfg = STATUS_CONFIG[story.status];
   const proposalLength = proposalContent.length;
 
-  const handleProposalSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeSubmission = async (contentToSubmit: string) => {
     setSubmitError("");
     setSubmitSuccess("");
 
-    if (proposalLength === 0) {
-      setSubmitError("Proposal concept cannot be empty.");
+    if (contentToSubmit.length === 0) {
+      setSubmitError("The void speaks nothing. Pen a spark for the loom to weave.");
       return;
     }
 
-    if (proposalLength > MAX_PROPOSAL_LENGTH) {
-      setSubmitError(`Proposal exceeds the maximum length of ${MAX_PROPOSAL_LENGTH} characters.`);
+    if (contentToSubmit.length > MAX_PROPOSAL_LENGTH) {
+      setSubmitError(`The tapestry tears! Keep your whispers under ${MAX_PROPOSAL_LENGTH} runes.`);
       return;
     }
 
@@ -211,21 +213,58 @@ export default function StoryDetailPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ content: proposalContent }),
+        body: JSON.stringify({ content: contentToSubmit }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setSubmitError(data.error || "Failed to submit proposal.");
+        setSubmitError(data.error || "The auctioneers rejected the whisper. Try again.");
       } else {
-        setSubmitSuccess("Proposal submitted successfully!");
+        setSubmitSuccess("Your thread has joined the great tapestry!");
         setProposalContent(""); // clear the input on success
+        setAiExpandedContent(""); 
+        setShowAiPreview(false);
         fetchProposals(); // refresh proposals list
       }
     } catch (err) {
-      setSubmitError("A network error occurred. Please try again.");
+      setSubmitError("The ethereal connection faded. Focus and try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleAiExpand = async () => {
+    if (proposalContent.length === 0) {
+      setSubmitError("The loom needs a thread to weave. Breathe life into your idea first.");
+      return;
+    }
+    setSubmitError("");
+    setIsAiExpanding(true);
+    try {
+      const res = await fetch(`/api/ai/expand`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proposal: proposalContent,
+          storyContext: {
+            title: story.title,
+            genre: story.genre,
+            description: story.description,
+            rules: story.rules,
+          }
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSubmitError(data.error || "The ancient scribe lost its focus. Kindle the flame again.");
+      } else {
+        setAiExpandedContent(data.expandedText);
+        setShowAiPreview(true);
+      }
+    } catch (err) {
+      setSubmitError("A tremor in the void disrupted the weaving. Try again shortly.");
+    } finally {
+      setIsAiExpanding(false);
     }
   };
 
@@ -429,13 +468,13 @@ export default function StoryDetailPage() {
               <span className="text-amber-500/80 font-medium">Note: Only one proposal per story per day.</span>
             </p>
 
-            <form onSubmit={handleProposalSubmit} className="space-y-4">
+            <div className="space-y-4">
               <div className="space-y-2 relative">
                 <textarea
                   value={proposalContent}
                   onChange={(e) => setProposalContent(e.target.value)}
-                  disabled={isSubmitting || story.status !== "active"}
-                  rows={6}
+                  disabled={isSubmitting || story.status !== "active" || isAiExpanding}
+                  rows={4}
                   placeholder="The rogue automaton slowly pointed its rusted finger towards the northern door..."
                   className="w-full bg-[#0a0f1a] border border-white/10 rounded-lg px-4 py-3.5 text-stone-200 placeholder:text-stone-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all text-sm resize-none disabled:opacity-50"
                   required
@@ -460,26 +499,85 @@ export default function StoryDetailPage() {
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting || proposalLength > MAX_PROPOSAL_LENGTH || proposalLength === 0 || story.status !== "active"}
-                className="w-full relative overflow-hidden px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 disabled:bg-stone-800 disabled:text-stone-500 text-amber-50 font-medium text-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed shadow-lg shadow-amber-900/20 flex justify-center items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-stone-400/40 border-t-stone-200 rounded-full animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Submit Proposal
-                  </>
-                )}
-              </button>
-            </form>
+              {!showAiPreview ? (
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={() => executeSubmission(proposalContent)}
+                    disabled={isSubmitting || proposalLength > MAX_PROPOSAL_LENGTH || proposalLength === 0 || story.status !== "active" || isAiExpanding}
+                    className="w-full relative overflow-hidden px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 disabled:bg-stone-800 disabled:text-stone-500 text-amber-50 font-medium text-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed shadow-lg shadow-amber-900/20 flex justify-center items-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-stone-400/40 border-t-stone-200 rounded-full animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Submit Proposal
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAiExpand}
+                    disabled={isAiExpanding || proposalLength === 0 || story.status !== "active" || isSubmitting}
+                    className="w-full relative px-5 py-2.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 text-indigo-300 font-medium text-sm transition-all shadow-lg flex justify-center items-center gap-2"
+                  >
+                    {isAiExpanding ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-indigo-400/40 border-t-indigo-200 rounded-full animate-spin" />
+                        Expanding...
+                      </>
+                    ) : (
+                      <>
+                        ✨ Expand with AI
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-indigo-950/20 p-4 border border-indigo-500/30 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-indigo-300 flex items-center gap-1.5"><span className="text-base">✨</span> AI Expanded Version</span>
+                    <button onClick={() => setShowAiPreview(false)} className="text-xs text-stone-500 hover:text-stone-300">Cancel</button>
+                  </div>
+                  <textarea
+                    value={aiExpandedContent}
+                    onChange={(e) => setAiExpandedContent(e.target.value)}
+                    className="w-full bg-[#0a0f1a] border border-indigo-500/30 rounded-lg px-4 py-3.5 text-indigo-100/90 focus:outline-none focus:border-indigo-500/50 transition-all text-sm resize-none"
+                    rows={6}
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => executeSubmission(proposalContent)}
+                      disabled={isSubmitting}
+                      className="w-1/2 px-4 py-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 font-medium text-sm transition-all"
+                    >
+                      Submit Original
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => executeSubmission(aiExpandedContent)}
+                      disabled={isSubmitting || aiExpandedContent.length > MAX_PROPOSAL_LENGTH || aiExpandedContent.length === 0}
+                      className="w-1/2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-indigo-50 font-medium text-sm transition-all shadow-lg shadow-indigo-900/20"
+                    >
+                      {isSubmitting ? "Submitting..." : "Submit AI Version"}
+                    </button>
+                  </div>
+                  <div className="text-[10px] text-stone-500 flex justify-between">
+                    <span>You can freely edit the generated text before submitting.</span>
+                    <span className={aiExpandedContent.length > MAX_PROPOSAL_LENGTH ? "text-red-400 font-medium" : "text-stone-500"}>
+                      {aiExpandedContent.length}/{MAX_PROPOSAL_LENGTH}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
