@@ -60,6 +60,7 @@ export default function StoryDetailPage() {
   const [bidAmount, setBidAmount] = useState<Record<string, string>>({});
   const [biddingStatus, setBiddingStatus] = useState<Record<string, boolean>>({});
   const [bidMessage, setBidMessage] = useState<Record<string, { text: string; success: boolean }>>({});
+  const [votingStatus, setVotingStatus] = useState<Record<string, boolean>>({});
 
   // Countdown State
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
@@ -124,9 +125,22 @@ export default function StoryDetailPage() {
       midnightPkt.setHours(24, 0, 0, 0);
 
       let diff = midnightPkt.getTime() - nowPkt.getTime();
-      
-      // Auto-close trigger when time hits zero (roughly within a tight window to avoid spam)
-      if (diff <= 1000 && diff >= -1000 && !isClosingRef.current) {
+
+      // If Target time has already passed today, set for tomorrow
+      if (diff < 0) {
+        midnightPkt.setDate(midnightPkt.getDate() + 1);
+        diff = midnightPkt.getTime() - nowPkt.getTime();
+      }
+
+      // Auto-close trigger: we delay it by 2-5 seconds PAST midnight 
+      // (When the new diff jumps up to 24 hours, meaning it just refreshed tomorrow's timer).
+      // A new day diff is approx 86,400,000 ms. 2-5 seconds past midnight is diff between 86395000 and 86398000.
+      const msInDay = 24 * 60 * 60 * 1000;
+      if (
+        diff <= msInDay - 2000 && 
+        diff >= msInDay - 5000 && 
+        !isClosingRef.current
+      ) {
         isClosingRef.current = true;
         try {
           // Trigger the closure background job automatically
@@ -137,12 +151,6 @@ export default function StoryDetailPage() {
           console.error("Failed to auto-close auction", err);
         }
         setTimeout(() => { isClosingRef.current = false; }, 60000); // Backoff for 1 minute
-      }
-
-      // If Target time has already passed today, set for tomorrow
-      if (diff < 0) {
-        midnightPkt.setDate(midnightPkt.getDate() + 1);
-        diff = midnightPkt.getTime() - nowPkt.getTime();
       }
 
       if (diff > 0) {
@@ -301,6 +309,28 @@ export default function StoryDetailPage() {
     }
   };
 
+  const handleVote = async (proposalId: string) => {
+    if (status !== "authenticated") {
+      router.push("/login");
+      return;
+    }
+
+    setVotingStatus(prev => ({ ...prev, [proposalId]: true }));
+    try {
+      const res = await fetch(`/api/proposals/${proposalId}/vote`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to vote");
+
+      // Refetch proposals to reflect selected vote (hasVoted status)
+      setTimeout(() => fetchProposals(), 500);
+    } catch (err: any) {
+      console.error(err.message);
+    } finally {
+      setVotingStatus(prev => ({ ...prev, [proposalId]: false }));
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0f1a] text-stone-200">
@@ -426,23 +456,39 @@ export default function StoryDetailPage() {
                     <p className="text-stone-300 text-sm leading-relaxed mb-4">{p.content}</p>
 
                     {p.status === 'pending' && (
-                      <div className="pt-3 border-t border-white/5 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="1"
-                            placeholder="Amount (£)"
-                            className="w-28 bg-[#0a0f1a] border border-white/10 rounded-lg px-3 py-1.5 text-stone-200 placeholder:text-stone-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 text-sm"
-                            value={bidAmount[p._id] || ''}
-                            onChange={(e) => setBidAmount(prev => ({ ...prev, [p._id]: e.target.value }))}
-                          />
-                          <button
-                            onClick={() => handleBid(p._id)}
-                            disabled={biddingStatus[p._id]}
-                            className="px-4 py-1.5 text-sm bg-amber-600/20 hover:bg-amber-600/40 text-amber-400 border border-amber-600/30 rounded-lg transition-colors disabled:opacity-50 font-medium"
-                          >
-                            {biddingStatus[p._id] ? 'Placing...' : 'Place Bid'}
-                          </button>
+                      <div className="pt-3 border-t border-white/5 space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="1"
+                              placeholder="Amount (£)"
+                              className="w-28 bg-[#0a0f1a] border border-white/10 rounded-lg px-3 py-1.5 text-stone-200 placeholder:text-stone-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 text-sm"
+                              value={bidAmount[p._id] || ''}
+                              onChange={(e) => setBidAmount(prev => ({ ...prev, [p._id]: e.target.value }))}
+                            />
+                            <button
+                              onClick={() => handleBid(p._id)}
+                              disabled={biddingStatus[p._id]}
+                              className="px-4 py-1.5 text-sm bg-amber-600/20 hover:bg-amber-600/40 text-amber-400 border border-amber-600/30 rounded-lg transition-colors disabled:opacity-50 font-medium"
+                            >
+                              {biddingStatus[p._id] ? 'Placing...' : 'Place Bid'}
+                            </button>
+                          </div>
+
+                          <div className="flex items-center">
+                            <button
+                              onClick={() => handleVote(p._id)}
+                              disabled={votingStatus[p._id]}
+                              className={`px-4 py-1.5 text-sm rounded-lg transition-colors disabled:opacity-50 font-medium flex items-center gap-2 ${
+                                p.hasVoted
+                                  ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40'
+                                  : 'bg-white/5 hover:bg-white/10 text-stone-300 border border-white/10'
+                                }`}
+                            >
+                              {votingStatus[p._id] ? 'Voting...' : p.hasVoted ? '★ Voted' : '☆ Vote'}
+                            </button>
+                          </div>
                         </div>
                         {bidMessage[p._id] && (
                           <p className={`text-xs px-1 transition-all ${bidMessage[p._id].success ? 'text-emerald-400' : 'text-red-400'}`}>

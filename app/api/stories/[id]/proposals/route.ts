@@ -4,6 +4,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import connectToDatabase from "@/lib/mongodb";
 import Proposal from "@/models/Proposal";
 import Story from "@/models/Story";
+import Bid from "@/models/Bid";
+import Vote from "@/models/Vote";
 
 /**
  * POST /api/stories/[id]/proposals
@@ -111,6 +113,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
     const p = await params;
     const { id } = p;
 
@@ -125,9 +128,42 @@ export async function GET(
     const proposals = await Proposal.find({ 
       storyId: id,
       status: { $ne: "loser" } 
-    }).sort({ totalBidAmount: -1, createdAt: 1 });
+    }).sort({ totalBidAmount: -1, createdAt: 1 }).lean();
 
-    return NextResponse.json({ proposals }, { status: 200 });
+    let userVotedProposalId: string | null = null;
+    let userVotedProposals: Record<string, boolean> = {}; // Keeping this as userBidProposals logic to avoid breaking frontend that might use it or changing it gently
+
+    if (session?.user?.id) {
+      // Find if they voted on any proposal for this story
+      const vote = await Vote.findOne({
+        userId: session.user.id,
+        storyId: id,
+      }).lean();
+
+      if (vote) {
+        userVotedProposalId = vote.proposalId.toString();
+      }
+
+      const proposalIds = proposals.map((p) => p._id);
+      const bids = await Bid.find({
+        userId: session.user.id,
+        proposalId: { $in: proposalIds },
+      }).lean();
+
+      bids.forEach((bid: any) => {
+        userVotedProposals[bid.proposalId.toString()] = true;
+      });
+    }
+
+    const proposalsWithVoteStatus = proposals.map((p) => ({
+      ...p,
+      hasBid: !!userVotedProposals[p._id.toString()], // renaming to hasBid to clarify
+      hasVoted: userVotedProposalId === p._id.toString(), // new field for actual votes
+      // hide total votes for privacy as per constraints, we can explicitly undefined it
+      voteCount: undefined
+    }));
+
+    return NextResponse.json({ proposals: proposalsWithVoteStatus }, { status: 200 });
   } catch (error) {
     console.error(`[GET /api/stories/[id]/proposals]`, error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -15,14 +15,19 @@ export async function closeExpiredAuctions() {
     await connectToDatabase();
 
     // Calculate the start of the current day in Pakistan Time (PKT, UTC+5)
+    // We add a 2-minute (120,000 ms) forward tolerance buffer. If the cron or an API call 
+    // executes at 23:58:00 to 23:59:59 PKT, it safely evaluates as the "next day" 
+    // guaranteeing today's proposals confidently close without 1-second server race conditions.
     const now = new Date();
-    const pktTime = new Date(now.getTime() + 5 * 60 * 60 * 1000);
-    const startOfTodayPKTInUTC = new Date(Date.UTC(
-      pktTime.getUTCFullYear(),
-      pktTime.getUTCMonth(),
-      pktTime.getUTCDate(),
-      -5, 0, 0, 0
-    ));
+    
+    // Convert to PKT (+5 hours) and push forward by the 2 minute race-tolerance buffer.
+    const pktTime = new Date(now.getTime() + 120000 + 5 * 60 * 60 * 1000);
+    
+    // We bind the generated cutoff strictly to 00:00:00 PKT for that logical calculated day.
+    // Shift back 5 hours to store as UTC for MongoDB comparison.
+    const startOfTodayPKTInUTC = new Date(
+      Date.UTC(pktTime.getUTCFullYear(), pktTime.getUTCMonth(), pktTime.getUTCDate(), 0, 0, 0) - 5 * 60 * 60 * 1000
+    );
 
     // Find all pending proposals created before the start of the current day in PKT
     const expiredProposals = await Proposal.find({
@@ -50,9 +55,29 @@ export async function closeExpiredAuctions() {
         storyId,
         status: "pending",
         createdAt: { $lt: startOfTodayPKTInUTC }
-      }).sort({ totalBidAmount: -1, createdAt: 1 }); // AS-19 Tie-breaker
+      });
 
       if (proposals.length > 0) {
+        // Calculate total bids across all proposals for this story
+        const totalBidsForStory = proposals.reduce((sum, p) => sum + (p.totalBidAmount || 0), 0);
+
+        // Sort proposals based on rules:
+        // If there are ANY bids for the story, sort ONLY by totalBidAmount (descending), tie breaker createdAt.
+        // If NO bids exist for the story at all, sort by voteCount (descending), tie breaker createdAt.
+        proposals.sort((a, b) => {
+          if (totalBidsForStory > 0) {
+            if ((b.totalBidAmount || 0) !== (a.totalBidAmount || 0)) {
+              return (b.totalBidAmount || 0) - (a.totalBidAmount || 0);
+            }
+          } else {
+            if ((b.voteCount || 0) !== (a.voteCount || 0)) {
+              return (b.voteCount || 0) - (a.voteCount || 0);
+            }
+          }
+          // Tie-breaker: earliest createdAt wins (ascending)
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+
         // Atomically mark winner — $set avoids any risk of overwriting other fields via .save()
         await Proposal.findByIdAndUpdate(proposals[0]._id, { $set: { status: "winner" } });
 

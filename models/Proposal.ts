@@ -31,6 +31,10 @@ const ProposalSchema = new Schema(
       type: Number,
       default: 0,
     },
+    voteCount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
