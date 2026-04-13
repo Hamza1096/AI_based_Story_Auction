@@ -14,9 +14,20 @@ export async function closeExpiredAuctions() {
   try {
     await connectToDatabase();
 
-    // Find all pending proposals no matter the time created
+    // Calculate the start of the current day in Pakistan Time (PKT, UTC+5)
+    const now = new Date();
+    const pktTime = new Date(now.getTime() + 5 * 60 * 60 * 1000);
+    const startOfTodayPKTInUTC = new Date(Date.UTC(
+      pktTime.getUTCFullYear(),
+      pktTime.getUTCMonth(),
+      pktTime.getUTCDate(),
+      -5, 0, 0, 0
+    ));
+
+    // Find all pending proposals created before the start of the current day in PKT
     const expiredProposals = await Proposal.find({
-      status: "pending"
+      status: "pending",
+      createdAt: { $lt: startOfTodayPKTInUTC }
     })
       .select("storyId")
       .lean();
@@ -34,10 +45,11 @@ export async function closeExpiredAuctions() {
     let closedCount = 0;
 
     for (const storyId of storyIdsToClose) {
-      // Fetch all pending proposals for this story, sorted by highest bid then earliest submission
+      // Fetch all pending proposals for this story that were created before today in PKT
       const proposals = await Proposal.find({
         storyId,
         status: "pending",
+        createdAt: { $lt: startOfTodayPKTInUTC }
       }).sort({ totalBidAmount: -1, createdAt: 1 }); // AS-19 Tie-breaker
 
       if (proposals.length > 0) {
