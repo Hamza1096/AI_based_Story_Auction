@@ -3,6 +3,8 @@ import Proposal from "@/models/Proposal";
 import Bid from "@/models/Bid";
 import User from "@/models/User";
 import Transaction from "@/models/Transaction";
+import Story from "@/models/Story";
+import { syncEpisodesForStory } from "@/lib/episodeCompiler";
 
 /**
  * Closes all pending auctions at midnight.
@@ -113,6 +115,13 @@ export async function closeExpiredAuctions() {
     }
 
     console.log(`[AuctionCron] Done. Closed ${closedCount} auction(s).`);
+
+    // Sync episodes for all active stories to cover gaps
+    const activeStories = await Story.find({ status: "active" }).select("_id").lean();
+    for (const story of activeStories) {
+      await syncEpisodesForStory(story._id.toString());
+    }
+
   } catch (error) {
     console.error("[AuctionCron] Error closing auctions:", error);
   }

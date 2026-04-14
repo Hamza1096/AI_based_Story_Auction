@@ -62,6 +62,12 @@ export default function StoryDetailPage() {
   const [bidMessage, setBidMessage] = useState<Record<string, { text: string; success: boolean }>>({});
   const [votingStatus, setVotingStatus] = useState<Record<string, boolean>>({});
 
+  const [activeTab, setActiveTab] = useState<"proposals" | "episodes">("proposals");
+  const [episodes, setEpisodes] = useState<any[]>([]);
+  const [loadingEpisodes, setLoadingEpisodes] = useState(true);
+  
+  const [showCurrentStory, setShowCurrentStory] = useState(false);
+
   // Countdown State
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
   const isClosingRef = useRef(false);
@@ -104,8 +110,24 @@ export default function StoryDetailPage() {
     }
   };
 
+  const fetchEpisodes = async () => {
+    if (!params.id) return;
+    try {
+      const res = await fetch(`/api/stories/${params.id}/episodes`);
+      if (res.ok) {
+        const data = await res.json();
+        setEpisodes(data.episodes || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch episodes", err);
+    } finally {
+      setLoadingEpisodes(false);
+    }
+  };
+
   useEffect(() => {
     fetchProposals();
+    fetchEpisodes();
   }, [params.id]);
 
   // Handle countdown timer based on PKT midnight
@@ -425,15 +447,28 @@ export default function StoryDetailPage() {
             </section>
           )}
 
-          {/* Current Proposals */}
+          {/* Tabs for Current Proposals / Episodes */}
           <section className="pt-8 border-t border-white/5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-stone-200">Current Proposals</h2>
+            <div className="flex items-center gap-6 mb-8 border-b border-white/5 pb-0">
+              <button 
+                onClick={() => setActiveTab("proposals")}
+                className={`text-lg font-medium transition-colors border-b-2 pb-3 mb-[-2px] ${activeTab === 'proposals' ? 'text-amber-400 border-amber-400' : 'text-stone-500 border-transparent hover:text-stone-300'}`}
+              >
+                Current Proposals
+              </button>
+              <button 
+                onClick={() => setActiveTab("episodes")}
+                className={`text-lg font-medium transition-colors border-b-2 pb-3 mb-[-2px] ${activeTab === 'episodes' ? 'text-amber-400 border-amber-400' : 'text-stone-500 border-transparent hover:text-stone-300'}`}
+              >
+                The Story So Far
+              </button>
             </div>
 
-            {loadingProposals ? (
-              <div className="text-stone-500 text-sm">Loading proposals...</div>
-            ) : proposals.length === 0 ? (
+            {activeTab === "proposals" && (
+              <>
+                {loadingProposals ? (
+                  <div className="text-stone-500 text-sm">Loading proposals...</div>
+                ) : proposals.length === 0 ? (
               <div className="text-stone-500 text-sm italic bg-white/[0.02] border border-white/5 rounded-xl p-6 text-center">
                 No proposals yet. Submit the first one!
               </div>
@@ -500,6 +535,68 @@ export default function StoryDetailPage() {
                   </div>
                 ))}
               </div>
+            )}
+              </>
+            )}
+
+            {activeTab === "episodes" && (
+               <div className="space-y-8">
+                 {/* Temporary Demo Button to Show Joined Winners */}
+                 <div className="bg-white/[0.02] border border-white/10 rounded-xl p-5 mb-8">
+                   <div className="flex justify-between items-center">
+                     <h3 className="text-amber-200 font-medium text-sm">Demo: Current Compiled Story</h3>
+                     <button
+                       onClick={() => setShowCurrentStory(!showCurrentStory)}
+                       className="px-4 py-2 text-xs bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/20 text-amber-300 rounded-md transition-colors font-medium"
+                     >
+                       {showCurrentStory ? "Hide" : "Show shorter version of episode"}
+                     </button>
+                   </div>
+                   
+                   {showCurrentStory && (
+                     <div className="mt-4 p-4 bg-[#060a12] border border-white/5 rounded-lg text-stone-300 text-sm leading-relaxed whitespace-pre-wrap">
+                       {proposals.filter(p => p.status === 'winner').length > 0 
+                         ? proposals.filter(p => p.status === 'winner').map(p => p.content).join('\n\n')
+                         : "No winning lines have been chosen yet."}
+                     </div>
+                   )}
+                 </div>
+
+                 {loadingEpisodes ? (
+                   <div className="text-stone-500 text-sm">Translating ancient scrolls...</div>
+                 ) : episodes.length === 0 ? (
+                   <div className="text-stone-500 text-sm italic bg-white/[0.02] border border-white/5 rounded-xl p-6 text-center">
+                     No episodes have been compiled yet. The story is just beginning...
+                   </div>
+                 ) : (
+                   episodes.map(ep => (
+                     <div key={ep._id} className={`p-6 rounded-xl border ${ep.status === 'published' ? 'bg-indigo-950/20 border-indigo-500/20 shadow-lg shadow-indigo-900/5' : 'bg-amber-950/10 border-amber-500/20 border-dashed bg-white/[0.01]'}`}>
+                       <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
+                         <h3 className={`font-serif text-xl ${ep.status === 'published' ? 'text-indigo-200' : 'text-amber-200'}`}>
+                           Episode {ep.episodeNumber}
+                         </h3>
+                         <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${ep.status === 'published' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                           {ep.status === 'published' ? 'Published' : 'Current (Demo)'}
+                         </span>
+                       </div>
+                       
+                       <div className="space-y-4 text-stone-300 text-sm leading-relaxed">
+                         {ep.parts && ep.parts.length > 0 ? (
+                           <div className="space-y-3">
+                             {ep.parts.map((part: any, i: number) => (
+                               <p key={i} className={`${part.type === 'gap' ? 'text-stone-500 italic' : ''}`}>
+                                 {part.text}
+                               </p>
+                             ))}
+                           </div>
+                         ) : (
+                           <p className="text-stone-500 italic">This episode is forming...</p>
+                         )}
+                       </div>
+                     </div>
+                   ))
+                 )}
+               </div>
             )}
           </section>
         </div>
