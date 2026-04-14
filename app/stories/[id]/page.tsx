@@ -484,8 +484,13 @@ export default function StoryDetailPage() {
                               'bg-amber-500/20 text-amber-400'
                           }`}>{p.status}</span>
                       </div>
-                      <div className="text-sm font-medium text-amber-500">
-                        Total Bids: £{p.totalBidAmount || 0}
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="text-sm font-medium text-amber-500">
+                          Total Bids: £{p.totalBidAmount || 0}
+                        </div>
+                        <div className="text-xs font-medium text-indigo-400">
+                          Votes: {p.voteCount || 0}
+                        </div>
                       </div>
                     </div>
                     <p className="text-stone-300 text-sm leading-relaxed mb-4">{p.content}</p>

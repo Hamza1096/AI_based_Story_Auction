@@ -158,9 +158,7 @@ export async function GET(
     const proposalsWithVoteStatus = proposals.map((p) => ({
       ...p,
       hasBid: !!userVotedProposals[p._id.toString()], // renaming to hasBid to clarify
-      hasVoted: userVotedProposalId === p._id.toString(), // new field for actual votes
-      // hide total votes for privacy as per constraints, we can explicitly undefined it
-      voteCount: undefined
+      hasVoted: userVotedProposalId === p._id.toString() // new field for actual votes
     }));
 
     return NextResponse.json({ proposals: proposalsWithVoteStatus }, { status: 200 });
