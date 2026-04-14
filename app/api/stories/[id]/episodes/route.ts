@@ -4,12 +4,13 @@ import Episode from "@/models/Episode";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await connectToDatabase();
     
-    const episodes = await Episode.find({ storyId: params.id })
+    const episodes = await Episode.find({ storyId: id })
       .sort({ episodeNumber: 1 })
       .lean();
 
