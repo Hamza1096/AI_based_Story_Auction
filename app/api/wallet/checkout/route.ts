@@ -7,7 +7,7 @@ import User from "@/models/User";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-02-24.acacia",
+  apiVersion: "2026-03-25.dahlia",
 });
 
 // Allowed top-up amounts in GBP (pence for Stripe, pounds for display)
