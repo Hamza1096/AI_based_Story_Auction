@@ -5,6 +5,7 @@ import User from "@/models/User";
 import Transaction from "@/models/Transaction";
 import Story from "@/models/Story";
 import { syncEpisodesForStory } from "@/lib/episodeCompiler";
+import { AUCTION_CONFIG } from "@/lib/auctionConfig";
 
 /**
  * Closes all pending auctions at midnight.
@@ -80,30 +81,117 @@ export async function closeExpiredAuctions() {
           return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         });
 
-        // Atomically mark winner — $set avoids any risk of overwriting other fields via .save()
-        await Proposal.findByIdAndUpdate(proposals[0]._id, { $set: { status: "winner" } });
+        // ── Mark winner ───────────────────────────────────────────────────
+        const winnerProposal = proposals[0];
+        await Proposal.findByIdAndUpdate(winnerProposal._id, { $set: { status: "winner" } });
 
-        // Mark all other proposals as losers and refund their bids
+        // ── Validate winner config ────────────────────────────────────────
+        const winnerTotal =
+          AUCTION_CONFIG.WINNER_PLATFORM_FEE_PCT + AUCTION_CONFIG.WINNER_AUTHOR_SHARE_PCT;
+        if (winnerTotal > 100) {
+          console.error(
+            `[AuctionCron] WINNER config invalid: fee(${AUCTION_CONFIG.WINNER_PLATFORM_FEE_PCT}) + author(${AUCTION_CONFIG.WINNER_AUTHOR_SHARE_PCT}) > 100. Skipping winner settlement.`
+          );
+        } else {
+          // ── Case 1: Settle winning proposal bids ─────────────────────────
+          // Platform fee % is already gone from bidder wallets (deducted at bid time).
+          // We only need to credit the author share to the proposal author.
+          const winningBids = await Bid.find({ proposalId: winnerProposal._id });
+          for (const bid of winningBids) {
+            const authorCredit = parseFloat(
+              ((bid.amount * AUCTION_CONFIG.WINNER_AUTHOR_SHARE_PCT) / 100).toFixed(2)
+            );
+
+            if (authorCredit > 0) {
+              // Credit the proposal author
+              await User.findByIdAndUpdate(winnerProposal.userId, {
+                $inc: { walletBalance: authorCredit },
+              });
+
+              await Transaction.create({
+                userId: winnerProposal.userId,
+                type: "credit",
+                amount: authorCredit,
+                status: "completed",
+                description: `Author share (${AUCTION_CONFIG.WINNER_AUTHOR_SHARE_PCT}%) from winning bid on proposal ${winnerProposal._id}`,
+              });
+            }
+          }
+        }
+
+        // ── Validate loser config ─────────────────────────────────────────
+        const loserTotal =
+          AUCTION_CONFIG.LOSER_PLATFORM_FEE_PCT + AUCTION_CONFIG.LOSER_AUTHOR_SHARE_PCT;
+        if (loserTotal > 100) {
+          console.error(
+            `[AuctionCron] LOSER config invalid: fee(${AUCTION_CONFIG.LOSER_PLATFORM_FEE_PCT}) + author(${AUCTION_CONFIG.LOSER_AUTHOR_SHARE_PCT}) > 100. Falling back to full refund.`
+          );
+        }
+
+        // ── Case 2: Settle losing proposal bids ──────────────────────────
         for (let i = 1; i < proposals.length; i++) {
-          const loserProposalId = proposals[i]._id;
-          await Proposal.findByIdAndUpdate(loserProposalId, { $set: { status: "loser" } });
+          const loserProposal = proposals[i];
+          await Proposal.findByIdAndUpdate(loserProposal._id, { $set: { status: "loser" } });
 
-          // Refund bids for this losing proposal
-          const losingBids = await Bid.find({ proposalId: loserProposalId });
+          const losingBids = await Bid.find({ proposalId: loserProposal._id });
+
           for (const bid of losingBids) {
-            // Refund the user wallet
-            await User.findByIdAndUpdate(bid.userId, {
-              $inc: { walletBalance: bid.amount },
-            });
+            if (loserTotal > 100) {
+              // Config is invalid — fall back to full refund so no bidder loses money unfairly
+              await User.findByIdAndUpdate(bid.userId, {
+                $inc: { walletBalance: bid.amount },
+              });
+              await Transaction.create({
+                userId: bid.userId,
+                type: "credit",
+                amount: bid.amount,
+                status: "completed",
+                description: `Full refund (config error) for losing proposal ${loserProposal._id}`,
+              });
+              continue;
+            }
 
-            // Create a transaction record for the refund
-            await Transaction.create({
-              userId: bid.userId,
-              type: "credit",
-              amount: bid.amount,
-              status: "completed",
-              description: `Refund for unaccepted proposal (ID: ${loserProposalId})`,
-            });
+            const platformFee = parseFloat(
+              ((bid.amount * AUCTION_CONFIG.LOSER_PLATFORM_FEE_PCT) / 100).toFixed(2)
+            );
+            const authorCredit = parseFloat(
+              ((bid.amount * AUCTION_CONFIG.LOSER_AUTHOR_SHARE_PCT) / 100).toFixed(2)
+            );
+            const refundAmount = parseFloat(
+              (bid.amount - platformFee - authorCredit).toFixed(2)
+            );
+
+            // Credit the proposal author their share
+            if (authorCredit > 0) {
+              await User.findByIdAndUpdate(loserProposal.userId, {
+                $inc: { walletBalance: authorCredit },
+              });
+              await Transaction.create({
+                userId: loserProposal.userId,
+                type: "credit",
+                amount: authorCredit,
+                status: "completed",
+                description: `Author share (${AUCTION_CONFIG.LOSER_AUTHOR_SHARE_PCT}%) from losing bid on proposal ${loserProposal._id}`,
+              });
+            }
+
+            // Refund the remainder to the bidder
+            if (refundAmount > 0) {
+              await User.findByIdAndUpdate(bid.userId, {
+                $inc: { walletBalance: refundAmount },
+              });
+              await Transaction.create({
+                userId: bid.userId,
+                type: "credit",
+                amount: refundAmount,
+                status: "completed",
+                description: `Partial refund (${100 - AUCTION_CONFIG.LOSER_PLATFORM_FEE_PCT - AUCTION_CONFIG.LOSER_AUTHOR_SHARE_PCT}%) for losing proposal ${loserProposal._id}`,
+              });
+            }
+
+            console.log(
+              `[AuctionCron] Loser bid £${bid.amount}: platform £${platformFee} | author £${authorCredit} | refund £${refundAmount}`
+            );
           }
         }
 
