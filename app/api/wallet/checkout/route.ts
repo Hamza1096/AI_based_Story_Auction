@@ -43,7 +43,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
-    const appUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    // Build the base URL for Stripe redirect URLs.
+    // Priority: explicit NEXTAUTH_URL → Vercel's auto-set VERCEL_URL → localhost (dev)
+    // VERCEL_URL is injected by Vercel on every deployment without needing manual config.
+    const appUrl =
+      process.env.NEXTAUTH_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
     // Create Stripe Checkout Session
     const checkoutSession = await stripe.checkout.sessions.create({
