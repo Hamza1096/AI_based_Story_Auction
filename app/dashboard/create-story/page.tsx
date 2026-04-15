@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 
 const GENRES = [
   "Fantasy",
@@ -118,27 +119,7 @@ export default function CreateStoryPage() {
       <div className="fixed bottom-[-10%] right-[-5%] w-[400px] h-[400px] bg-teal-600/5 blur-[100px] rounded-full pointer-events-none z-0" />
 
       {/* Top bar */}
-      <header className="relative z-10 border-b border-white/5 bg-[#0c1220]/80 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-stone-400 hover:text-amber-300 transition-colors text-sm group"
-          >
-            <svg
-              className="w-4 h-4 transition-transform group-hover:-translate-x-0.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            Dashboard
-          </Link>
-          <span className="text-white/10">/</span>
-          <span className="text-stone-300 text-sm font-medium">Create Story</span>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main content */}
       <main className="relative z-10 max-w-3xl mx-auto px-6 py-12">

@@ -4,6 +4,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -230,65 +231,7 @@ function DashboardInner() {
       <div className="fixed bottom-0 right-[10%] w-[400px] h-[400px] bg-teal-700/4 blur-[120px] rounded-full pointer-events-none z-0" />
 
       {/* ── Top navigation bar ── */}
-      <header className="relative z-20 border-b border-white/5 bg-[#0c1220]/80 backdrop-blur-sm sticky top-0">
-        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-7 h-7 rounded-lg bg-amber-600/20 border border-amber-500/30 flex items-center justify-center group-hover:border-amber-500/50 transition-colors">
-              <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-            <span className="text-sm font-serif text-amber-100/80 group-hover:text-amber-100 transition-colors hidden sm:block">
-              The Astral Loom
-            </span>
-          </Link>
-
-          {/* Nav links */}
-          <nav className="flex items-center gap-1 text-sm">
-            <span className="px-3 py-1.5 rounded-lg text-amber-300 bg-amber-500/10 font-medium text-xs">
-              Dashboard
-            </span>
-            <Link href="/stories" className="px-3 py-1.5 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-white/5 text-xs transition-all">
-              Browse Stories
-            </Link>
-            <Link href="/dashboard/wallet" className="px-3 py-1.5 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-white/5 text-xs transition-all">
-              Wallet
-            </Link>
-          </nav>
-
-          {/* Right: user + wallet + signout */}
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard/wallet" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/8 hover:border-amber-500/30 transition-colors">
-              <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-              <span className="text-xs font-medium text-amber-200">
-                {walletBalance === null ? "…" : `£${walletBalance.toFixed(2)}`}
-              </span>
-            </Link>
-
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-[11px] font-bold text-white shadow-md">
-                {getInitials(session.user?.name)}
-              </div>
-              <span className="hidden md:block text-xs text-stone-400 max-w-[100px] truncate">
-                {session.user?.name}
-              </span>
-            </div>
-
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-stone-500 hover:text-red-400 hover:bg-red-400/8 transition-all text-xs"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              <span className="hidden sm:block">Sign out</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* ── Main ── */}
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-10">

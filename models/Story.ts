@@ -35,6 +35,10 @@ const StorySchema = new Schema(
       type: [String],
       default: [],
     },
+    blacklist: {
+      type: [String],
+      default: [],
+    },
     author: {
       type: Schema.Types.ObjectId,
       ref: "User",

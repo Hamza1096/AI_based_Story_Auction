@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -247,39 +248,7 @@ export default function BrowseStoriesPage() {
       <div className="fixed bottom-0 right-[10%] w-[400px] h-[400px] bg-teal-700/4 blur-[120px] rounded-full pointer-events-none z-0" />
 
       {/* ── Navbar ── */}
-      <header className="relative z-20 border-b border-white/5 bg-[#0c1220]/80 backdrop-blur-sm sticky top-0">
-        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-7 h-7 rounded-lg bg-amber-600/20 border border-amber-500/30 flex items-center justify-center group-hover:border-amber-500/50 transition-colors">
-              <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-            <span className="text-sm font-serif text-amber-100/80 group-hover:text-amber-100 transition-colors hidden sm:block">
-              The Astral Loom
-            </span>
-          </Link>
-
-          <nav className="flex items-center gap-1 text-sm">
-            <Link href="/dashboard" className="px-3 py-1.5 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-white/5 text-xs transition-all">
-              Dashboard
-            </Link>
-            <span className="px-3 py-1.5 rounded-lg text-amber-300 bg-amber-500/10 font-medium text-xs">
-              Browse Stories
-            </span>
-          </nav>
-
-          <Link
-            href="/dashboard/create-story"
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-amber-50 font-medium text-xs transition-all active:scale-[0.97] shadow-md shadow-amber-900/20"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Create Story
-          </Link>
-        </div>
-      </header>
+      <Navbar />
 
       {/* ── Main ── */}
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-10">

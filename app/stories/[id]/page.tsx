@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, use, useRef } from "react";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 
 interface Story {
   _id: string;
@@ -361,27 +362,7 @@ export default function StoryDetailPage() {
       <div className="fixed bottom-0 right-[10%] w-[400px] h-[400px] bg-teal-700/4 blur-[120px] rounded-full pointer-events-none z-0" />
 
       {/* Top bar */}
-      <header className="relative z-10 border-b border-white/5 bg-[#0c1220]/80 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
-          <Link
-            href="/stories"
-            className="flex items-center gap-2 text-stone-400 hover:text-amber-300 transition-colors text-sm group"
-          >
-            <svg
-              className="w-4 h-4 transition-transform group-hover:-translate-x-0.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            Browse Stories
-          </Link>
-          <span className="text-white/10">/</span>
-          <span className="text-stone-300 text-sm font-medium">{story.title.length > 30 ? story.title.slice(0, 30) + '...' : story.title}</span>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main content */}
       <main className="relative z-10 max-w-4xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-10">
