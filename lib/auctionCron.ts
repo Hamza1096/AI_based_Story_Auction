@@ -7,13 +7,20 @@ import Story from "@/models/Story";
 import { syncEpisodesForStory } from "@/lib/episodeCompiler";
 import { AUCTION_CONFIG } from "@/lib/auctionConfig";
 
+interface CloseExpiredAuctionsOptions {
+  force?: boolean;
+  storyId?: string;
+}
+
 /**
- * Closes all pending auctions at midnight.
- * As per requirements, this closes all pending proposals no matter the time created.
+ * Closes eligible pending auctions at midnight (PKT cutoff).
+ * For manual testing, `force: true` can close currently pending proposals immediately.
  * The winner is the proposal with the highest totalBidAmount.
  * Tie-breaker: earliest createdAt wins (AS-19).
  */
-export async function closeExpiredAuctions() {
+export async function closeExpiredAuctions(options: CloseExpiredAuctionsOptions = {}) {
+  const { force = false, storyId: targetStoryId } = options;
+
   try {
     await connectToDatabase();
 
@@ -32,33 +39,61 @@ export async function closeExpiredAuctions() {
       Date.UTC(pktTime.getUTCFullYear(), pktTime.getUTCMonth(), pktTime.getUTCDate(), 0, 0, 0) - 5 * 60 * 60 * 1000
     );
 
-    // Find all pending proposals created before the start of the current day in PKT
-    const expiredProposals = await Proposal.find({
+    const pendingQuery: {
+      status: "pending";
+      storyId?: string;
+      createdAt?: { $lt: Date };
+    } = {
       status: "pending",
-      createdAt: { $lt: startOfTodayPKTInUTC }
-    })
+    };
+
+    if (targetStoryId) {
+      pendingQuery.storyId = targetStoryId;
+    }
+
+    if (!force) {
+      pendingQuery.createdAt = { $lt: startOfTodayPKTInUTC };
+    }
+
+    // Find all pending proposals eligible for this run
+    const expiredProposals = await Proposal.find(pendingQuery)
       .select("storyId")
       .lean();
 
     if (expiredProposals.length === 0) {
-      console.log("[AuctionCron] No expired auctions found.");
+      if (force) {
+        console.log("[AuctionCron] No pending auctions found for manual close.");
+      } else {
+        console.log("[AuctionCron] No expired auctions found.");
+      }
       return;
     }
 
     // Get unique story IDs that have expired auctions
     const storyIdsToClose = [
-      ...new Set(expiredProposals.map((p: any) => p.storyId.toString())),
+      ...new Set(
+        expiredProposals.map((p) => String((p as { storyId: unknown }).storyId))
+      ),
     ];
 
     let closedCount = 0;
 
     for (const storyId of storyIdsToClose) {
-      // Fetch all pending proposals for this story that were created before today in PKT
-      const proposals = await Proposal.find({
+      const storyPendingQuery: {
+        storyId: string;
+        status: "pending";
+        createdAt?: { $lt: Date };
+      } = {
         storyId,
         status: "pending",
-        createdAt: { $lt: startOfTodayPKTInUTC }
-      });
+      };
+
+      if (!force) {
+        storyPendingQuery.createdAt = { $lt: startOfTodayPKTInUTC };
+      }
+
+      // Fetch all pending proposals for this story eligible for this run
+      const proposals = await Proposal.find(storyPendingQuery);
 
       if (proposals.length > 0) {
         // Calculate total bids across all proposals for this story

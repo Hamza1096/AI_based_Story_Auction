@@ -98,6 +98,8 @@ export default function StoryDetailPage() {
   const [biddingStatus, setBiddingStatus] = useState<Record<string, boolean>>({});
   const [bidMessage, setBidMessage] = useState<Record<string, { text: string; success: boolean }>>({});
   const [votingStatus, setVotingStatus] = useState<Record<string, boolean>>({});
+  const [isEndingAuction, setIsEndingAuction] = useState(false);
+  const [auctionActionMessage, setAuctionActionMessage] = useState<{ text: string; success: boolean } | null>(null);
 
   const [activeTab, setActiveTab] = useState<"proposals" | "episodes">("proposals");
   const [episodes, setEpisodes] = useState<Episode[]>([]);
@@ -395,6 +397,39 @@ export default function StoryDetailPage() {
     }
   };
 
+  const handleManualAuctionClose = async () => {
+    if (isEndingAuction) return;
+
+    setIsEndingAuction(true);
+    setAuctionActionMessage(null);
+
+    try {
+      const res = await fetch(
+        `/api/cron/auction-close?manual=1&storyId=${encodeURIComponent(story._id)}&t=${Date.now()}`,
+        { cache: "no-store" }
+      );
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to end auction.");
+      }
+
+      await Promise.all([fetchProposals(), fetchEpisodes()]);
+      setAuctionActionMessage({
+        text: data.message || "Auction close check completed.",
+        success: true,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to end auction.";
+      setAuctionActionMessage({
+        text: message,
+        success: false,
+      });
+    } finally {
+      setIsEndingAuction(false);
+    }
+  };
+
   const handleSynthesizeDraft = async () => {
     if (!story) return;
     const winners = proposals.filter(p => p.status === 'winner');
@@ -604,6 +639,20 @@ export default function StoryDetailPage() {
 
             {activeTab === "proposals" && (
               <>
+                <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
+                  {auctionActionMessage && (
+                    <p className={`text-xs ${auctionActionMessage.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {auctionActionMessage.success ? '✓' : '✕'} {auctionActionMessage.text}
+                    </p>
+                  )}
+                  <button
+                    onClick={handleManualAuctionClose}
+                    disabled={isEndingAuction || story.status !== "active"}
+                    className="self-start sm:self-auto px-3 py-1.5 text-xs rounded-lg border border-red-500/30 bg-red-600/10 hover:bg-red-600/20 text-red-300 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isEndingAuction ? "Ending Auction..." : "End Auction (Test)"}
+                  </button>
+                </div>
                 {loadingProposals ? (
                   <div className="text-stone-500 text-sm">Loading proposals...</div>
                 ) : proposals.length === 0 ? (

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./Providers";
+import aiAuctionIcon from "./assets/ai-auction.webp";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -16,6 +17,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "The Astral Loom",
   description: "A Collaborative Storytelling Platform with Auction-Based Decision Making",
+  icons: {
+    icon: [{ url: aiAuctionIcon.src, type: "image/webp" }],
+    shortcut: [{ url: aiAuctionIcon.src, type: "image/webp" }],
+    apple: [{ url: aiAuctionIcon.src, type: "image/webp" }],
+  },
 };
 
 export default function RootLayout({
