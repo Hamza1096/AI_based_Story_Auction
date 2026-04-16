@@ -95,7 +95,7 @@ export default function RegisterPage() {
         {/* Story Quotes */}
         <div className="relative z-20 max-w-xl mx-auto text-center space-y-10">
           <p className="text-amber-50 font-serif italic text-2xl md:text-3xl leading-relaxed tracking-wide shadow-sm opacity-90">
-            "A blank page awaits. What tales will you transcribe?"
+            &quot;A blank page awaits. What tales will you transcribe?&quot;
           </p>
           <div className="w-16 h-px bg-amber-700/50 mx-auto"></div>
           <div className="text-teal-100/60 font-serif tracking-widest text-sm uppercase">AI-Auction Platform</div>
