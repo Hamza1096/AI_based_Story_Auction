@@ -54,7 +54,7 @@ interface Episode {
 const GENRE_COLOURS: Record<string, { bg: string; text: string; border: string }> = {
   Fantasy: { bg: "bg-violet-500/10", text: "text-violet-300", border: "border-violet-500/20" },
   "Science Fiction": { bg: "bg-cyan-500/10", text: "text-cyan-300", border: "border-cyan-500/20" },
-  Mystery: { bg: "bg-yellow-500/10", text: "text-yellow-300", border: "border-yellow-500/20" },
+  Mystery: {   bg: "bg-indigo-500/10", text: "text-indigo-700", border: "border-indigo-500/20" },
   Romance: { bg: "bg-pink-500/10", text: "text-pink-300", border: "border-pink-500/20" },
   Horror: { bg: "bg-red-500/10", text: "text-red-300", border: "border-red-500/20" },
   Thriller: { bg: "bg-orange-500/10", text: "text-orange-300", border: "border-orange-500/20" },
@@ -491,7 +491,7 @@ export default function StoryDetailPage() {
             </h1>
 
             <div className="flex items-center gap-2 text-stone-400 text-sm">
-              <span>By <span className="text-amber-200/80 font-medium">{story.authorName}</span></span>
+              <span>By <span className="text-black font-medium">{story.authorName}</span></span>
               <span className="text-white/10">•</span>
               <span>{new Date(story.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
             </div>
@@ -841,15 +841,15 @@ export default function StoryDetailPage() {
                   </button>
                 </div>
               ) : (
-                <div className="bg-indigo-950/20 p-4 border border-indigo-500/30 rounded-xl space-y-3">
+                <div className="bg-stone-100 dark:bg-indigo-950/20 p-4 border border-stone-300 dark:border-indigo-500/30 rounded-xl space-y-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-indigo-300 flex items-center gap-1.5"><span className="text-base">✨</span> AI Expanded Version</span>
-                    <button onClick={() => setShowAiPreview(false)} className="text-xs text-stone-500 hover:text-stone-300">Cancel</button>
+                    <span className="text-xs font-medium text-stone-800 dark:text-indigo-300 flex items-center gap-1.5"><span className="text-base">✨</span> AI Expanded Version</span>
+                    <button onClick={() => setShowAiPreview(false)} className="text-xs text-stone-600 dark:text-stone-500 hover:text-stone-800 dark:hover:text-stone-300">Cancel</button>
                   </div>
                   <textarea
                     value={aiExpandedContent}
                     onChange={(e) => setAiExpandedContent(e.target.value)}
-                    className="w-full bg-[#0a0f1a] border border-indigo-500/30 rounded-lg px-4 py-3.5 text-indigo-100/90 focus:outline-none focus:border-indigo-500/50 transition-all text-sm resize-none"
+                    className="w-full bg-white dark:bg-[#0a0f1a] border border-stone-300 dark:border-indigo-500/30 rounded-lg px-4 py-3.5 text-stone-800 dark:text-indigo-100/90 focus:outline-none focus:border-indigo-500/50 transition-all text-sm resize-none"
                     rows={6}
                   />
                   <div className="flex gap-3">
@@ -857,7 +857,7 @@ export default function StoryDetailPage() {
                       type="button"
                       onClick={() => executeSubmission(proposalContent)}
                       disabled={isSubmitting}
-                      className="w-1/2 px-4 py-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 font-medium text-sm transition-all"
+                      className="w-1/2 px-4 py-2 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-800 dark:bg-stone-800 dark:hover:bg-stone-700 dark:text-stone-300 font-medium text-sm transition-all"
                     >
                       Submit Original
                     </button>
@@ -870,9 +870,9 @@ export default function StoryDetailPage() {
                       {isSubmitting ? "Submitting..." : "Submit AI Version"}
                     </button>
                   </div>
-                  <div className="text-[10px] text-stone-500 flex justify-between">
+                  <div className="text-[10px] text-stone-600 dark:text-stone-500 flex justify-between">
                     <span>You can freely edit the generated text before submitting.</span>
-                    <span className={aiExpandedContent.length > MAX_PROPOSAL_LENGTH ? "text-red-400 font-medium" : "text-stone-500"}>
+                    <span className={aiExpandedContent.length > MAX_PROPOSAL_LENGTH ? "text-red-400 font-medium" : "text-stone-600 dark:text-stone-500"}>
                       {aiExpandedContent.length}/{MAX_PROPOSAL_LENGTH}
                     </span>
                   </div>

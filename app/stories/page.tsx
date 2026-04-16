@@ -41,7 +41,7 @@ const GENRES = [
 const GENRE_COLOURS: Record<string, { bg: string; text: string; border: string }> = {
   Fantasy:              { bg: "bg-violet-500/10", text: "text-violet-300", border: "border-violet-500/20" },
   "Science Fiction":    { bg: "bg-cyan-500/10",   text: "text-cyan-300",   border: "border-cyan-500/20" },
-  Mystery:              { bg: "bg-yellow-500/10", text: "text-yellow-300", border: "border-yellow-500/20" },
+  Mystery: {   bg: "bg-indigo-500/10", text: "text-indigo-700", border: "border-indigo-500/20" },
   Romance:              { bg: "bg-pink-500/10",   text: "text-pink-300",   border: "border-pink-500/20" },
   Horror:               { bg: "bg-red-500/10",    text: "text-red-300",    border: "border-red-500/20" },
   Thriller:             { bg: "bg-orange-500/10", text: "text-orange-300", border: "border-orange-500/20" },
