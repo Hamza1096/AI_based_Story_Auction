@@ -491,7 +491,7 @@ export default function StoryDetailPage() {
             </h1>
 
             <div className="flex items-center gap-2 text-stone-400 text-sm">
-              <span>By <span className="text-black font-medium">{story.authorName}</span></span>
+              <span>By <span className="text-teal-600 dark:text-teal-400 font-medium">{story.authorName}</span></span>
               <span className="text-white/10">•</span>
               <span>{new Date(story.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
             </div>
