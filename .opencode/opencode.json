@@ -1,0 +1,10 @@
+{
+  "permission": {
+    "read": {
+      "E:/Projects/AI_Auction/ai-auction/.opencode/get-shit-done/*": "allow"
+    },
+    "external_directory": {
+      "E:/Projects/AI_Auction/ai-auction/.opencode/get-shit-done/*": "allow"
+    }
+  }
+}

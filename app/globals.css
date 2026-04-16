@@ -103,6 +103,79 @@ html.light .text-\[\#070a13\] {
   color: #E7E5E4 !important; /* Soft stone color for the wave at bottom */
 }
 
+/* Auth Pages Override (Login / Register Split screen) */
+html.light .bg-\[\#181615\] {
+  background-color: #F8F9FA !important; /* Make the dark half light */
+}
+
+html.light .bg-black\/20 {
+  background-color: #FFFFFF !important;
+  border-color: #E7E5E4 !important;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02) !important;
+}
+
+html.light .bg-\[\#1f1d1c\] {
+  background-color: #FFFFFF !important;
+  color: #1F2933 !important;
+  border-color: #D1D5DB !important;
+}
+
+html.light .hover\:bg-\[\#252220\]:hover {
+  background-color: #F3F4F6 !important;
+}
+
+html.light .bg-\[\#974d2f\] {
+  background-color: #1F2933 !important;
+  color: #FFFFFF !important;
+  border-color: #1F2933 !important;
+}
+
+html.light .bg-\[\#974d2f\] .text-stone-200,
+html.light .bg-\[\#974d2f\] .text-amber-50,
+html.light .hover\:bg-\[\#854024\]:hover .text-stone-200,
+html.light .hover\:bg-\[\#854024\]:hover .text-amber-50 {
+  color: #FFFFFF !important;
+}
+
+html.light .hover\:bg-\[\#854024\]:hover {
+  background-color: #000000 !important;
+}
+
+html.light .bg-stone-800 {
+  background-color: #E7E5E4 !important;
+}
+
+html.light .border-stone-700 {
+  border-color: #D1D5DB !important;
+}
+
+html.light .border-stone-800\/40 {
+  border-color: #E7E5E4 !important;
+}
+
+html.light .bg-\[\#3d1810\] {
+  background-color: #FEF2F2 !important; /* Soft red bg */
+  border-color: #FECACA !important;
+  color: #DC2626 !important;
+}
+
+html.light .text-\[\#f2afa1\] {
+  color: #DC2626 !important;
+}
+
+html.light .peer-focus\:text-amber-700:focus ~ label,
+html.light .peer-focus\:text-amber-700:focus-within ~ label {
+  color: #1F2933 !important;
+}
+
+html.light .peer:focus ~ label {
+  color: #1F2933 !important;
+}
+
+html.light .peer:focus {
+  border-color: #1F2933 !important;
+}
+
 /* Landing Page Hero Buttons Override */
 html.light .bg-\[\#C66743\] {
   background-color: #1F2933 !important; /* Make orange buttons into dark slate ones in light mode */
@@ -203,7 +276,8 @@ html.light .bg-indigo-600\/20,
 html.light .bg-indigo-950\/20,
 html.light .bg-emerald-950\/20,
 html.light .bg-amber-950\/10,
-html.light .bg-white\/\[0\.02\] {
+html.light .bg-white\/\[0\.02\],
+html.light .bg-white\/\[0\.01\] {
   background-color: #FFFFFF !important;
   color: #1F2933 !important;
   border-color: #E7E5E4 !important;
@@ -258,6 +332,11 @@ html.light .bg-red-500\/10 {
 html.light .bg-red-950\/10 {
   background-color: #FFF0F2 !important;
   border-color: #FECACA !important;
+}
+html.light .bg-indigo-500\/20 {
+  background-color: #F3F4F6 !important;
+  color: #1F2933 !important;
+  border-color: #D1D5DB !important;
 }
 
 /* Ambient glow blobs (Mute them slightly in light mode) */

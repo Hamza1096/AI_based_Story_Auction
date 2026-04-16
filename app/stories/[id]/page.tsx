@@ -695,7 +695,7 @@ export default function StoryDetailPage() {
                     const isDraft = ep.status === 'draft';
                     
                     return (
-                      <div key={ep._id} className={`p-6 rounded-xl border ${isDraft ? 'bg-amber-950/10 border-amber-500/20 border-dashed bg-white/[0.01]' : 'bg-indigo-950/20 border-indigo-500/20 shadow-lg shadow-indigo-900/5'}`}>
+                      <div key={ep._id} className={`p-6 rounded-xl border ${isDraft ? 'bg-stone-50 dark:bg-amber-950/10 border-stone-300 dark:border-amber-500/20 border-dashed' : 'bg-slate-50 dark:bg-indigo-950/20 border-slate-200 dark:border-indigo-500/20 shadow-sm dark:shadow-lg dark:shadow-indigo-900/5'}`}>
                         <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
                           <h3 className={`font-serif text-xl ${isDraft ? 'text-amber-200' : 'text-indigo-200'}`}>
                             Episode {ep.episodeNumber}
@@ -735,7 +735,7 @@ export default function StoryDetailPage() {
                           {isDraft ? (
                             <>
                               {showEpisodePreview && synthesizedPreview ? (
-                                <div className="whitespace-pre-wrap leading-relaxed font-serif text-lg text-stone-200/90 selection:bg-amber-500/30">
+                                <div className="whitespace-pre-wrap leading-relaxed font-serif text-lg px-4 py-4 rounded-lg border border-stone-200 bg-stone-100 text-stone-800 dark:border-white/10 dark:bg-[#0a0f1a]/60 dark:text-stone-200/90 selection:bg-amber-500/30">
                                   {synthesizedPreview}
                                 </div>
                               ) : (
@@ -745,7 +745,7 @@ export default function StoryDetailPage() {
                               )}
                             </>
                           ) : (
-                            <div className="whitespace-pre-wrap leading-relaxed font-serif text-lg text-stone-200/90 selection:bg-amber-500/30">
+                            <div className="whitespace-pre-wrap leading-relaxed font-serif text-lg px-4 py-4 rounded-lg border border-stone-200 bg-stone-100 text-stone-800 dark:border-white/10 dark:bg-[#0a0f1a]/60 dark:text-stone-200/90 selection:bg-amber-500/30">
                               {ep.content}
                             </div>
                           )}
