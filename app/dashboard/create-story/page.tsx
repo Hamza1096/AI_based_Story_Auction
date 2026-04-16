@@ -42,6 +42,7 @@ export default function CreateStoryPage() {
   const [genre, setGenre] = useState("");
   const [description, setDescription] = useState("");
   const [rules, setRules] = useState<string[]>([""]);
+  const [blacklistString, setBlacklistString] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -91,6 +92,7 @@ export default function CreateStoryPage() {
           genre,
           description: description.trim(),
           rules: cleanedRules,
+          blacklist: blacklistString,
         }),
       });
 
@@ -229,6 +231,29 @@ export default function CreateStoryPage() {
                 {descLength} chars{descLength < 20 && descLength > 0 ? ` (${20 - descLength} more)` : ""}
               </span>
             </div>
+          </div>
+
+          {/* Blacklist */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-sm font-medium text-stone-300" htmlFor="story-blacklist">
+                  Keyword Blacklist
+                  <span className="ml-2 text-xs text-stone-500 font-normal">(optional)</span>
+                </label>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Comma-separated list of keywords to automatically reject from proposals.
+                </p>
+              </div>
+            </div>
+            <input
+              id="story-blacklist"
+              type="text"
+              value={blacklistString}
+              onChange={(e) => setBlacklistString(e.target.value)}
+              placeholder="e.g. magic, modern technology, dragons"
+              className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-4 py-3.5 text-stone-100 placeholder:text-stone-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all text-sm"
+            />
           </div>
 
           {/* Rules */}

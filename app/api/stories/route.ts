@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { title, genre, description, rules } = body;
+    const { title, genre, description, rules, blacklist } = body;
 
     // --- Validation ---
     if (!title || typeof title !== "string" || title.trim().length === 0) {
@@ -95,6 +95,14 @@ export async function POST(request: Request) {
           .slice(0, 10)
       : [];
 
+    // Blacklist: comma-separated string converted to array
+    const sanitisedBlacklist: string[] = typeof blacklist === "string"
+      ? blacklist
+          .split(",")
+          .map((k) => k.trim().toLowerCase())
+          .filter((k) => k.length > 0)
+      : [];
+
     await connectToDatabase();
 
     const story = await Story.create({
@@ -102,6 +110,7 @@ export async function POST(request: Request) {
       genre,
       description: description.trim(),
       rules: sanitisedRules,
+      blacklist: sanitisedBlacklist,
       author: session.user.id,
       authorName: session.user.name || "Anonymous",
       status: "active",

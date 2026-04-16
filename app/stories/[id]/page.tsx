@@ -12,6 +12,8 @@ interface Story {
   genre: string;
   description: string;
   rules: string[];
+  blacklist?: string[];
+  author: string;
   authorName: string;
   status: "active" | "completed" | "paused";
   chapterCount: number;
@@ -46,6 +48,10 @@ export default function StoryDetailPage() {
 
   const [story, setStory] = useState<Story | null>(null);
   const [loadingStory, setLoadingStory] = useState(true);
+
+  const [isEditingBlacklist, setIsEditingBlacklist] = useState(false);
+  const [blacklistInput, setBlacklistInput] = useState("");
+  const [isUpdatingBlacklist, setIsUpdatingBlacklist] = useState(false);
 
   // Proposal State
   const [proposalContent, setProposalContent] = useState("");
@@ -85,6 +91,9 @@ export default function StoryDetailPage() {
         if (res.ok) {
           const data = await res.json();
           setStory(data.story);
+          if (data.story.blacklist) {
+            setBlacklistInput(data.story.blacklist.join(", "));
+          }
         } else {
           setStory(null);
         }
@@ -355,6 +364,28 @@ export default function StoryDetailPage() {
     }
   };
 
+  const handleUpdateBlacklist = async () => {
+    if (!story) return;
+    setIsUpdatingBlacklist(true);
+    try {
+      const res = await fetch(`/api/stories/${story._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blacklist: blacklistInput }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStory(data.story);
+        setBlacklistInput(data.story.blacklist?.join(", ") || "");
+        setIsEditingBlacklist(false);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsUpdatingBlacklist(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0f1a] text-stone-200">
       {/* Ambient glows */}
@@ -425,6 +456,69 @@ export default function StoryDetailPage() {
                   </li>
                 ))}
               </ul>
+            </section>
+          )}
+
+          {/* Blacklist Management (Author only) */}
+          {session?.user?.id === story.author && (
+            <section className="mt-8">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-medium text-stone-200">Keyword Blacklist</h2>
+                {!isEditingBlacklist ? (
+                  <button
+                    onClick={() => setIsEditingBlacklist(true)}
+                    className="text-xs text-amber-500 hover:text-amber-400 font-medium"
+                  >
+                    Edit Blacklist
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setIsEditingBlacklist(false);
+                        setBlacklistInput(story.blacklist?.join(", ") || "");
+                      }}
+                      className="text-xs text-stone-500 hover:text-stone-300 font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleUpdateBlacklist}
+                      disabled={isUpdatingBlacklist}
+                      className="text-xs text-emerald-500 hover:text-emerald-400 font-medium disabled:opacity-50"
+                    >
+                      {isUpdatingBlacklist ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              {isEditingBlacklist ? (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={blacklistInput}
+                    onChange={(e) => setBlacklistInput(e.target.value)}
+                    placeholder="e.g. offensive, unwanted, words"
+                    className="w-full bg-[#0a0f1a] border border-white/10 rounded-lg px-4 py-2 text-stone-200 placeholder:text-stone-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 text-sm"
+                  />
+                  <p className="text-[10px] text-stone-500">Comma-separated list of keywords. Proposals containing these words will be automatically rejected.</p>
+                </div>
+              ) : (
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6 text-sm text-stone-400">
+                  {story.blacklist && story.blacklist.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {story.blacklist.map((word, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-red-500/10 text-red-300 border border-red-500/20 rounded-md text-xs">
+                          {word}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="italic text-stone-600">No blacklisted keywords defined.</p>
+                  )}
+                </div>
+              )}
             </section>
           )}
 

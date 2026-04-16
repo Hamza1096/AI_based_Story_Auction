@@ -31,6 +31,7 @@ const TransactionSchema = new Schema(
     stripeSessionId: {
       type: String,
       sparse: true, // null for non-Stripe transactions (e.g. debit for bidding)
+      unique: true,
     },
     stripePaymentIntentId: {
       type: String,
@@ -42,8 +43,6 @@ const TransactionSchema = new Schema(
 
 // Fast lookup by user, newest-first
 TransactionSchema.index({ userId: 1, createdAt: -1 });
-// Idempotency — prevent duplicate credits for same Stripe session
-TransactionSchema.index({ stripeSessionId: 1 }, { sparse: true, unique: true });
 
 const Transaction = models.Transaction || model("Transaction", TransactionSchema);
 

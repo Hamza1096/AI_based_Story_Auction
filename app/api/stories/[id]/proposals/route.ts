@@ -60,6 +60,19 @@ export async function POST(
       return NextResponse.json({ error: "Story not found." }, { status: 404 });
     }
 
+    // Check against blacklist
+    if (story.blacklist && story.blacklist.length > 0) {
+      const lowerContent = trimmedContent.toLowerCase();
+      const blockedWords = story.blacklist.filter((word: string) => lowerContent.includes(word));
+      
+      if (blockedWords.length > 0) {
+        return NextResponse.json(
+          { error: `Proposal contains forbidden keywords. Please remove them and try again.` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Check one proposal per user per story per day (AS-12)
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
