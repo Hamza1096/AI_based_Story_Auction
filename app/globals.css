@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Make Tailwind dark: utilities follow next-themes class toggling, not browser media preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #030305; /* Dark Void */
   --foreground: #ffffff;
