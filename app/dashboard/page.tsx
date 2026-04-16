@@ -68,7 +68,8 @@ function StoryCard({ story }: { story: Story }) {
   const statusCfg = STATUS_CONFIG[story.status];
 
   return (
-    <article className="group relative flex flex-col bg-white/[0.03] hover:bg-white/[0.055] border border-white/8 hover:border-white/15 rounded-xl p-5 transition-all duration-200 cursor-pointer overflow-hidden">
+    <Link href={`/stories/${story._id}`} className="block h-full">
+    <article className="group relative flex flex-col bg-white/[0.03] hover:bg-white/[0.055] border border-white/8 hover:border-white/15 rounded-xl p-5 transition-all duration-200 cursor-pointer overflow-hidden h-full">
       {/* Subtle hover glow */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-br from-amber-600/3 to-transparent rounded-xl" />
 
@@ -122,6 +123,7 @@ function StoryCard({ story }: { story: Story }) {
         </span>
       </div>
     </article>
+    </Link>
   );
 }
 
