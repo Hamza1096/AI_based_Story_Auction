@@ -104,8 +104,6 @@ export default function StoryDetailPage() {
   const [loadingEpisodes, setLoadingEpisodes] = useState(true);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [synthesizedPreview, setSynthesizedPreview] = useState<string | null>(null);
-  
-  const [showCurrentStory, setShowCurrentStory] = useState(false);
 
   // Countdown State
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
@@ -685,60 +683,6 @@ export default function StoryDetailPage() {
 
             {activeTab === "episodes" && (
               <div className="space-y-8">
-                <div className="bg-white/[0.02] border border-white/10 rounded-xl p-5 mb-8">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="text-amber-200 font-medium text-sm">Draft Synthesis</h3>
-                      <p className="text-[10px] text-stone-500 mt-0.5">Preview how winning lines will be woven into the episode.</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setShowCurrentStory(!showCurrentStory);
-                        if (!showCurrentStory && !synthesizedPreview) handleSynthesizeDraft();
-                      }}
-                      disabled={isSynthesizing}
-                      className="px-4 py-2 text-xs bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 text-indigo-300 rounded-md transition-colors font-medium flex items-center gap-2 disabled:opacity-50"
-                    >
-                      {isSynthesizing ? (
-                        <div className="w-3.5 h-3.5 border-2 border-indigo-400/40 border-t-indigo-200 rounded-full animate-spin" />
-                      ) : <span className="text-base">✨</span>}
-                      {showCurrentStory ? "Hide Preview" : "Generate Coherent Preview"}
-                    </button>
-                  </div>
-                  
-                  {showCurrentStory && (
-                    <div className="mt-4 p-4 bg-[#060a12] border border-white/5 rounded-lg text-stone-300 text-sm leading-relaxed">
-                      {proposals.filter(p => p.status === 'winner').length > 0 
-                        ? (
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-2 pb-2 border-b border-white/5 mb-3">
-                              <span className="text-[10px] uppercase tracking-wider font-bold text-amber-500/50">Raw Combined Text</span>
-                            </div>
-                            <p className="whitespace-pre-wrap opacity-60 text-xs italic mb-4">
-                              {proposals.filter(p => p.status === 'winner').map(p => p.content).join('\n\n')}
-                            </p>
-                            
-                            <div className="flex items-center gap-2 pb-2 border-b border-white/5 mb-3">
-                              <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400 flex items-center gap-2">
-                                AI Coherent Narrative {isSynthesizing && <span className="animate-pulse">(Weaving...)</span>}
-                              </span>
-                            </div>
-                            {synthesizedPreview || episodes.find(e => e.status === 'draft')?.content ? (
-                              <p className="whitespace-pre-wrap">
-                                {synthesizedPreview || episodes.find(e => e.status === 'draft')?.content}
-                              </p>
-                            ) : (
-                              <p className="text-stone-500 italic text-xs">
-                                {isSynthesizing ? "The spirits are weaving the threads..." : "Click the button above to synthesize the story sparks into a coherent narrative."}
-                              </p>
-                            )}
-                          </div>
-                        )
-                        : "No winning lines have been chosen yet."}
-                    </div>
-                  )}
-                </div>
-
                 {loadingEpisodes ? (
                   <div className="text-stone-500 text-sm">Translating ancient scrolls...</div>
                 ) : episodes.length === 0 ? (
@@ -746,60 +690,56 @@ export default function StoryDetailPage() {
                     No episodes have been compiled yet. The story is just beginning...
                   </div>
                 ) : (
-                  episodes.map((ep: Episode) => (
-                    <div key={ep._id} className={`p-6 rounded-xl border ${ep.status === 'published' ? 'bg-indigo-950/20 border-indigo-500/20 shadow-lg shadow-indigo-900/5' : 'bg-amber-950/10 border-amber-500/20 border-dashed bg-white/[0.01]'}`}>
-                      <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
-                        <h3 className={`font-serif text-xl ${ep.status === 'published' ? 'text-indigo-200' : 'text-amber-200'}`}>
-                          Episode {ep.episodeNumber}
-                        </h3>
-                        <div className="flex flex-col items-end gap-1">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${ep.status === 'published' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-amber-500/20 text-amber-300'}`}>
-                            {ep.status === 'published' ? 'Published' : 'Current (Demo)'}
-                          </span>
-                          {ep.status === 'draft' && (
-                            <span className="text-[9px] text-amber-500/60 font-medium animate-pulse">
-                              Weaving in progress...
+                  episodes.map((ep: Episode) => {
+                    const isDraft = ep.status === 'draft';
+                    
+                    return (
+                      <div key={ep._id} className={`p-6 rounded-xl border ${isDraft ? 'bg-amber-950/10 border-amber-500/20 border-dashed bg-white/[0.01]' : 'bg-indigo-950/20 border-indigo-500/20 shadow-lg shadow-indigo-900/5'}`}>
+                        <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
+                          <h3 className={`font-serif text-xl ${isDraft ? 'text-amber-200' : 'text-indigo-200'}`}>
+                            Episode {ep.episodeNumber}
+                          </h3>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${isDraft ? 'bg-amber-500/20 text-amber-300' : 'bg-indigo-500/20 text-indigo-300'}`}>
+                              {isDraft ? 'Episode in Progress' : 'Published'}
                             </span>
+                            {isDraft && (
+                              <span className="text-[9px] text-amber-500/60 font-medium animate-pulse">
+                                Weaving in progress...
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-4 text-stone-300 text-sm leading-relaxed">
+                          {isDraft ? (
+                            <>
+                              {synthesizedPreview ? (
+                                <div className="whitespace-pre-wrap leading-relaxed font-serif text-lg text-stone-200/90 selection:bg-amber-500/30">
+                                  {synthesizedPreview}
+                                </div>
+                              ) : (
+                                <div className="py-8 text-center bg-white/[0.01] rounded-lg border border-dashed border-white/5">
+                                  <p className="text-stone-500 italic mb-3">This episode is forming over the week. You can see how it will be stitched together.</p>
+                                  <button
+                                    onClick={handleSynthesizeDraft}
+                                    disabled={isSynthesizing}
+                                    className="px-4 py-2 text-xs bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/20 text-amber-300 rounded-md transition-colors"
+                                  >
+                                    {isSynthesizing ? "Scribe is weaving..." : "Preview AI Version"}
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className="whitespace-pre-wrap leading-relaxed font-serif text-lg text-stone-200/90 selection:bg-amber-500/30">
+                              {ep.content}
+                            </div>
                           )}
                         </div>
                       </div>
-                      
-                      <div className="space-y-4 text-stone-300 text-sm leading-relaxed">
-                        {/* Always prioritize the synthesized coherent version */}
-                        {(ep.status === 'draft' && synthesizedPreview) || ep.content ? (
-                          <div className="whitespace-pre-wrap leading-relaxed font-serif text-lg text-stone-200/90 selection:bg-amber-500/30">
-                            {(ep.status === 'draft' && synthesizedPreview) || ep.content}
-                          </div>
-                        ) : (
-                          <div className="py-8 text-center bg-white/[0.01] rounded-lg border border-dashed border-white/5">
-                            <p className="text-stone-500 italic mb-3">Wait for the scribe to weave the current winning threads into a narrative...</p>
-                            {ep.status === 'draft' && (
-                              <button
-                                onClick={handleSynthesizeDraft}
-                                disabled={isSynthesizing}
-                                className="px-4 py-2 text-xs bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/20 text-amber-300 rounded-md transition-colors"
-                              >
-                                {isSynthesizing ? "Scribe is weaving..." : "Generate Coherent Demo"}
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {ep.status === 'draft' && ep.parts.length > 0 && !ep.content && !synthesizedPreview && (
-                        <div className="mt-6 pt-6 border-t border-white/5">
-                          <p className="text-[10px] text-stone-500 uppercase tracking-widest mb-3 font-semibold">Fragments awaiting synthesis:</p>
-                          <div className="space-y-3 opacity-40">
-                            {ep.parts.map((part: EpisodePart, i: number) => (
-                              <p key={i} className={`text-xs ${part.type === 'gap' ? 'text-stone-600 italic' : ''}`}>
-                                {part.type === 'winner' ? `• ${part.text}` : ''}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
