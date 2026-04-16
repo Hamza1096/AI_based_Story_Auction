@@ -621,26 +621,50 @@ export default function StoryDetailPage() {
 
             {activeTab === "episodes" && (
                <div className="space-y-8">
-                 {/* Temporary Demo Button to Show Joined Winners */}
                  <div className="bg-white/[0.02] border border-white/10 rounded-xl p-5 mb-8">
-                   <div className="flex justify-between items-center">
-                     <h3 className="text-amber-200 font-medium text-sm">Demo: Current Compiled Story</h3>
-                     <button
-                       onClick={() => setShowCurrentStory(!showCurrentStory)}
-                       className="px-4 py-2 text-xs bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/20 text-amber-300 rounded-md transition-colors font-medium"
-                     >
-                       {showCurrentStory ? "Hide" : "Show shorter version of episode"}
-                     </button>
-                   </div>
-                   
-                   {showCurrentStory && (
-                     <div className="mt-4 p-4 bg-[#060a12] border border-white/5 rounded-lg text-stone-300 text-sm leading-relaxed whitespace-pre-wrap">
-                       {proposals.filter(p => p.status === 'winner').length > 0 
-                         ? proposals.filter(p => p.status === 'winner').map(p => p.content).join('\n\n')
-                         : "No winning lines have been chosen yet."}
-                     </div>
-                   )}
-                 </div>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-amber-200 font-medium text-sm">Draft Synthesis</h3>
+                        <p className="text-[10px] text-stone-500 mt-0.5">Preview how winning lines will be woven into the episode.</p>
+                      </div>
+                      <button
+                        onClick={() => setShowCurrentStory(!showCurrentStory)}
+                        className="px-4 py-2 text-xs bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 text-indigo-300 rounded-md transition-colors font-medium flex items-center gap-2"
+                      >
+                         <span className="text-base">✨</span> {showCurrentStory ? "Hide Preview" : "Generate Coherent Preview"}
+                      </button>
+                    </div>
+                    
+                    {showCurrentStory && (
+                      <div className="mt-4 p-4 bg-[#060a12] border border-white/5 rounded-lg text-stone-300 text-sm leading-relaxed">
+                        {proposals.filter(p => p.status === 'winner').length > 0 
+                          ? (
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2 pb-2 border-b border-white/5 mb-3">
+                                <span className="text-[10px] uppercase tracking-wider font-bold text-amber-500/50">Raw Combined Text</span>
+                              </div>
+                              <p className="whitespace-pre-wrap opacity-60 text-xs italic mb-4">
+                                {proposals.filter(p => p.status === 'winner').map(p => p.content).join('\n\n')}
+                              </p>
+                              
+                              <div className="flex items-center gap-2 pb-2 border-b border-white/5 mb-3">
+                                <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400">AI Coherent Narrative</span>
+                              </div>
+                              {episodes.find(e => e.status === 'draft')?.content ? (
+                                <p className="whitespace-pre-wrap">
+                                  {episodes.find(e => e.status === 'draft')?.content}
+                                </p>
+                              ) : (
+                                <p className="text-stone-500 italic text-xs">
+                                  The spirits are weaving the threads... Coherent version will be available after the next auction close or sync.
+                                </p>
+                              )}
+                            </div>
+                          )
+                          : "No winning lines have been chosen yet."}
+                      </div>
+                    )}
+                  </div>
 
                  {loadingEpisodes ? (
                    <div className="text-stone-500 text-sm">Translating ancient scrolls...</div>
@@ -661,18 +685,22 @@ export default function StoryDetailPage() {
                        </div>
                        
                        <div className="space-y-4 text-stone-300 text-sm leading-relaxed">
-                         {ep.parts && ep.parts.length > 0 ? (
-                           <div className="space-y-3">
-                             {ep.parts.map((part: any, i: number) => (
-                               <p key={i} className={`${part.type === 'gap' ? 'text-stone-500 italic' : ''}`}>
-                                 {part.text}
-                               </p>
-                             ))}
-                           </div>
-                         ) : (
-                           <p className="text-stone-500 italic">This episode is forming...</p>
-                         )}
-                       </div>
+                          {ep.content ? (
+                            <div className="whitespace-pre-wrap leading-relaxed">
+                              {ep.content}
+                            </div>
+                          ) : ep.parts && ep.parts.length > 0 ? (
+                            <div className="space-y-3">
+                              {ep.parts.map((part: any, i: number) => (
+                                <p key={i} className={`${part.type === 'gap' ? 'text-stone-500 italic' : ''}`}>
+                                  {part.text}
+                                </p>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-stone-500 italic">This episode is forming...</p>
+                          )}
+                        </div>
                      </div>
                    ))
                  )}

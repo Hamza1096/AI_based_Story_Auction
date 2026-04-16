@@ -2,6 +2,7 @@ import connectToDatabase from "@/lib/mongodb";
 import Story from "@/models/Story";
 import Proposal from "@/models/Proposal";
 import Episode from "@/models/Episode";
+import { synthesizeEpisodeContent } from "./ai";
 
 /**
  * Synchronizes the episodes for a given story.
@@ -55,7 +56,7 @@ export async function syncEpisodesForStory(storyId: string) {
       const status = isPublished ? "published" : "draft";
       
       const parts = [];
-      let episodeContent = "";
+      const winningTexts: string[] = [];
       
       for (let day = startDay; day <= endDay; day++) {
         // A day has historically closed if our current day index is strictly > day
@@ -74,7 +75,7 @@ export async function syncEpisodesForStory(storyId: string) {
               type: "winner",
               proposalId: winner._id
             });
-            episodeContent += (episodeContent ? "\n\n" : "") + winner.content;
+            winningTexts.push(winner.content);
           } else {
             parts.push({
               dayNumber: day,
@@ -82,19 +83,31 @@ export async function syncEpisodesForStory(storyId: string) {
               text: "[...]",
               type: "gap"
             });
-            episodeContent += (episodeContent ? "\n\n" : "") + "[...]";
           }
         }
       }
       
       if (parts.length > 0) {
+        // Synthesize the content if there are winners
+        let finalContent = "";
+        if (winningTexts.length > 0) {
+          // We call the AI to warp these together
+          finalContent = await synthesizeEpisodeContent(winningTexts, {
+            title: story.title as string,
+            genre: story.genre as string,
+            description: story.description as string
+          });
+        } else {
+          finalContent = "[No winners yet for this period]";
+        }
+
         await Episode.findOneAndUpdate(
           { storyId, episodeNumber: ep },
           {
             $set: {
               parts,
               status,
-              content: episodeContent
+              content: finalContent
             }
           },
           { upsert: true, new: true }
@@ -105,3 +118,4 @@ export async function syncEpisodesForStory(storyId: string) {
     console.error("[EpisodeCompiler] Sync failed:", error);
   }
 }
+
