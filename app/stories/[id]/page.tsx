@@ -21,6 +21,36 @@ interface Story {
   createdAt: string;
 }
 
+interface Proposal {
+  _id: string;
+  storyId: string;
+  userId: string;
+  userName: string;
+  content: string;
+  status: "pending" | "winner" | "loser";
+  totalBidAmount: number;
+  voteCount: number;
+  hasVoted?: boolean;
+  createdAt: string;
+}
+
+interface EpisodePart {
+  dayNumber: number;
+  date: string;
+  text: string;
+  type: "winner" | "gap";
+  proposalId?: string;
+}
+
+interface Episode {
+  _id: string;
+  storyId: string;
+  episodeNumber: number;
+  parts: EpisodePart[];
+  status: "draft" | "published";
+  content?: string;
+}
+
 const GENRE_COLOURS: Record<string, { bg: string; text: string; border: string }> = {
   Fantasy: { bg: "bg-violet-500/10", text: "text-violet-300", border: "border-violet-500/20" },
   "Science Fiction": { bg: "bg-cyan-500/10", text: "text-cyan-300", border: "border-cyan-500/20" },
@@ -62,7 +92,7 @@ export default function StoryDetailPage() {
   const [aiExpandedContent, setAiExpandedContent] = useState("");
   const [showAiPreview, setShowAiPreview] = useState(false);
 
-  const [proposals, setProposals] = useState<any[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loadingProposals, setLoadingProposals] = useState(true);
   const [bidAmount, setBidAmount] = useState<Record<string, string>>({});
   const [biddingStatus, setBiddingStatus] = useState<Record<string, boolean>>({});
@@ -70,7 +100,7 @@ export default function StoryDetailPage() {
   const [votingStatus, setVotingStatus] = useState<Record<string, boolean>>({});
 
   const [activeTab, setActiveTab] = useState<"proposals" | "episodes">("proposals");
-  const [episodes, setEpisodes] = useState<any[]>([]);
+  const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loadingEpisodes, setLoadingEpisodes] = useState(true);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [synthesizedPreview, setSynthesizedPreview] = useState<string | null>(null);
@@ -716,34 +746,58 @@ export default function StoryDetailPage() {
                     No episodes have been compiled yet. The story is just beginning...
                   </div>
                 ) : (
-                  episodes.map((ep: any) => (
+                  episodes.map((ep: Episode) => (
                     <div key={ep._id} className={`p-6 rounded-xl border ${ep.status === 'published' ? 'bg-indigo-950/20 border-indigo-500/20 shadow-lg shadow-indigo-900/5' : 'bg-amber-950/10 border-amber-500/20 border-dashed bg-white/[0.01]'}`}>
                       <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
                         <h3 className={`font-serif text-xl ${ep.status === 'published' ? 'text-indigo-200' : 'text-amber-200'}`}>
                           Episode {ep.episodeNumber}
                         </h3>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${ep.status === 'published' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-amber-500/20 text-amber-300'}`}>
-                          {ep.status === 'published' ? 'Published' : 'Current (Demo)'}
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${ep.status === 'published' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                            {ep.status === 'published' ? 'Published' : 'Current (Demo)'}
+                          </span>
+                          {ep.status === 'draft' && (
+                            <span className="text-[9px] text-amber-500/60 font-medium animate-pulse">
+                              Weaving in progress...
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="space-y-4 text-stone-300 text-sm leading-relaxed">
-                        {ep.content ? (
-                          <div className="whitespace-pre-wrap leading-relaxed">
-                            {ep.content}
+                        {/* Always prioritize the synthesized coherent version */}
+                        {(ep.status === 'draft' && synthesizedPreview) || ep.content ? (
+                          <div className="whitespace-pre-wrap leading-relaxed font-serif text-lg text-stone-200/90 selection:bg-amber-500/30">
+                            {(ep.status === 'draft' && synthesizedPreview) || ep.content}
                           </div>
-                        ) : ep.parts && ep.parts.length > 0 ? (
-                          <div className="space-y-3">
-                            {ep.parts.map((part: any, i: number) => (
-                              <p key={i} className={`${part.type === 'gap' ? 'text-stone-500 italic' : ''}`}>
-                                {part.text}
+                        ) : (
+                          <div className="py-8 text-center bg-white/[0.01] rounded-lg border border-dashed border-white/5">
+                            <p className="text-stone-500 italic mb-3">Wait for the scribe to weave the current winning threads into a narrative...</p>
+                            {ep.status === 'draft' && (
+                              <button
+                                onClick={handleSynthesizeDraft}
+                                disabled={isSynthesizing}
+                                className="px-4 py-2 text-xs bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/20 text-amber-300 rounded-md transition-colors"
+                              >
+                                {isSynthesizing ? "Scribe is weaving..." : "Generate Coherent Demo"}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {ep.status === 'draft' && ep.parts.length > 0 && !ep.content && !synthesizedPreview && (
+                        <div className="mt-6 pt-6 border-t border-white/5">
+                          <p className="text-[10px] text-stone-500 uppercase tracking-widest mb-3 font-semibold">Fragments awaiting synthesis:</p>
+                          <div className="space-y-3 opacity-40">
+                            {ep.parts.map((part: EpisodePart, i: number) => (
+                              <p key={i} className={`text-xs ${part.type === 'gap' ? 'text-stone-600 italic' : ''}`}>
+                                {part.type === 'winner' ? `• ${part.text}` : ''}
                               </p>
                             ))}
                           </div>
-                        ) : (
-                          <p className="text-stone-500 italic">This episode is forming...</p>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

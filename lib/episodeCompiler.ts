@@ -91,14 +91,14 @@ export async function syncEpisodesForStory(storyId: string) {
         // Synthesize the content if there are winners
         let finalContent = "";
         if (winningTexts.length > 0) {
-          // We call the AI to warp these together
+          // We call the AI to weave these together. This covers both published and draft episodes.
           finalContent = await synthesizeEpisodeContent(winningTexts, {
             title: story.title as string,
             genre: story.genre as string,
             description: story.description as string
           });
         } else {
-          finalContent = "[No winners yet for this period]";
+          finalContent = ""; // Leave empty if no winners yet, UI handles this state
         }
 
         await Episode.findOneAndUpdate(

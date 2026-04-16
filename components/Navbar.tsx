@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
+import { Sun, Moon } from 'lucide-react';
 
 function getInitials(name?: string | null): string {
   if (!name) return "?";
@@ -15,6 +17,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
@@ -88,7 +91,17 @@ export default function Navbar() {
 
         {/* Right Section */}
         <div className="flex items-center gap-3 shrink-0">
-
+          
+          {/* Theme Toggle */}
+          {mounted && (
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-2 rounded-lg bg-white/[0.04] border border-white/8 hover:border-amber-500/30 text-amber-400/80 hover:text-amber-400 transition-all"
+              aria-label="Toggle Theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+          )}
 
           <Link href="/dashboard/create-story" className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600/10 hover:bg-amber-600/20 text-amber-400 border border-amber-500/30 font-medium text-xs transition-all">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
