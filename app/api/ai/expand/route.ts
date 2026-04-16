@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { evalProposalAgainstRules } from "@/lib/evaluateRules";
 
 export async function POST(req: Request) {
   try {
@@ -13,6 +14,14 @@ export async function POST(req: Request) {
 
     if (!proposal || !storyContext) {
       return NextResponse.json({ error: "A spark is missing. The loom cannot weave without a thread." }, { status: 400 });
+    }
+
+    // Evaluate proposal against story rules before expansion
+    if (storyContext.rules && storyContext.rules.length > 0) {
+      const evaluation = await evalProposalAgainstRules(proposal, storyContext.rules);
+      if (!evaluation.isValid) {
+        return NextResponse.json({ error: evaluation.reason || "The proposal breaks the story rules." }, { status: 400 });
+      }
     }
 
     const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;

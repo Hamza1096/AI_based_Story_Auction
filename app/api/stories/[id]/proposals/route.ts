@@ -6,6 +6,7 @@ import Proposal from "@/models/Proposal";
 import Story from "@/models/Story";
 import Bid from "@/models/Bid";
 import Vote from "@/models/Vote";
+import { evalProposalAgainstRules } from "@/lib/evaluateRules";
 
 /**
  * POST /api/stories/[id]/proposals
@@ -68,6 +69,17 @@ export async function POST(
       if (blockedWords.length > 0) {
         return NextResponse.json(
           { error: `Proposal contains forbidden keywords. Please remove them and try again.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check against story rules
+    if (story.rules && story.rules.length > 0) {
+      const evaluation = await evalProposalAgainstRules(trimmedContent, story.rules);
+      if (!evaluation.isValid) {
+        return NextResponse.json(
+          { error: evaluation.reason || "Proposal breaks story rules." },
           { status: 400 }
         );
       }
