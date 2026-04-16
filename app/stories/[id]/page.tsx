@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState, use, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
@@ -72,6 +72,8 @@ export default function StoryDetailPage() {
   const [activeTab, setActiveTab] = useState<"proposals" | "episodes">("proposals");
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [loadingEpisodes, setLoadingEpisodes] = useState(true);
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [synthesizedPreview, setSynthesizedPreview] = useState<string | null>(null);
   
   const [showCurrentStory, setShowCurrentStory] = useState(false);
 
@@ -364,6 +366,38 @@ export default function StoryDetailPage() {
     }
   };
 
+  const handleSynthesizeDraft = async () => {
+    if (!story) return;
+    const winners = proposals.filter(p => p.status === 'winner');
+    if (winners.length === 0) return;
+
+    setIsSynthesizing(true);
+    try {
+      const res = await fetch('/api/ai/synthesize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fragments: winners.map(p => p.content),
+          storyContext: {
+            title: story.title,
+            genre: story.genre,
+            description: story.description
+          }
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSynthesizedPreview(data.synthesizedText);
+      } else {
+        console.error("Synthesis failed:", data.error);
+      }
+    } catch (err) {
+      console.error("Synthesis failed", err);
+    } finally {
+      setIsSynthesizing(false);
+    }
+  };
+
   const handleUpdateBlacklist = async () => {
     if (!story) return;
     setIsUpdatingBlacklist(true);
@@ -620,91 +654,100 @@ export default function StoryDetailPage() {
             )}
 
             {activeTab === "episodes" && (
-               <div className="space-y-8">
-                 <div className="bg-white/[0.02] border border-white/10 rounded-xl p-5 mb-8">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="text-amber-200 font-medium text-sm">Draft Synthesis</h3>
-                        <p className="text-[10px] text-stone-500 mt-0.5">Preview how winning lines will be woven into the episode.</p>
-                      </div>
-                      <button
-                        onClick={() => setShowCurrentStory(!showCurrentStory)}
-                        className="px-4 py-2 text-xs bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 text-indigo-300 rounded-md transition-colors font-medium flex items-center gap-2"
-                      >
-                         <span className="text-base">✨</span> {showCurrentStory ? "Hide Preview" : "Generate Coherent Preview"}
-                      </button>
+              <div className="space-y-8">
+                <div className="bg-white/[0.02] border border-white/10 rounded-xl p-5 mb-8">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-amber-200 font-medium text-sm">Draft Synthesis</h3>
+                      <p className="text-[10px] text-stone-500 mt-0.5">Preview how winning lines will be woven into the episode.</p>
                     </div>
-                    
-                    {showCurrentStory && (
-                      <div className="mt-4 p-4 bg-[#060a12] border border-white/5 rounded-lg text-stone-300 text-sm leading-relaxed">
-                        {proposals.filter(p => p.status === 'winner').length > 0 
-                          ? (
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-2 pb-2 border-b border-white/5 mb-3">
-                                <span className="text-[10px] uppercase tracking-wider font-bold text-amber-500/50">Raw Combined Text</span>
-                              </div>
-                              <p className="whitespace-pre-wrap opacity-60 text-xs italic mb-4">
-                                {proposals.filter(p => p.status === 'winner').map(p => p.content).join('\n\n')}
-                              </p>
-                              
-                              <div className="flex items-center gap-2 pb-2 border-b border-white/5 mb-3">
-                                <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400">AI Coherent Narrative</span>
-                              </div>
-                              {episodes.find(e => e.status === 'draft')?.content ? (
-                                <p className="whitespace-pre-wrap">
-                                  {episodes.find(e => e.status === 'draft')?.content}
-                                </p>
-                              ) : (
-                                <p className="text-stone-500 italic text-xs">
-                                  The spirits are weaving the threads... Coherent version will be available after the next auction close or sync.
-                                </p>
-                              )}
-                            </div>
-                          )
-                          : "No winning lines have been chosen yet."}
-                      </div>
-                    )}
+                    <button
+                      onClick={() => {
+                        setShowCurrentStory(!showCurrentStory);
+                        if (!showCurrentStory && !synthesizedPreview) handleSynthesizeDraft();
+                      }}
+                      disabled={isSynthesizing}
+                      className="px-4 py-2 text-xs bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 text-indigo-300 rounded-md transition-colors font-medium flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {isSynthesizing ? (
+                        <div className="w-3.5 h-3.5 border-2 border-indigo-400/40 border-t-indigo-200 rounded-full animate-spin" />
+                      ) : <span className="text-base">✨</span>}
+                      {showCurrentStory ? "Hide Preview" : "Generate Coherent Preview"}
+                    </button>
                   </div>
+                  
+                  {showCurrentStory && (
+                    <div className="mt-4 p-4 bg-[#060a12] border border-white/5 rounded-lg text-stone-300 text-sm leading-relaxed">
+                      {proposals.filter(p => p.status === 'winner').length > 0 
+                        ? (
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 pb-2 border-b border-white/5 mb-3">
+                              <span className="text-[10px] uppercase tracking-wider font-bold text-amber-500/50">Raw Combined Text</span>
+                            </div>
+                            <p className="whitespace-pre-wrap opacity-60 text-xs italic mb-4">
+                              {proposals.filter(p => p.status === 'winner').map(p => p.content).join('\n\n')}
+                            </p>
+                            
+                            <div className="flex items-center gap-2 pb-2 border-b border-white/5 mb-3">
+                              <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400 flex items-center gap-2">
+                                AI Coherent Narrative {isSynthesizing && <span className="animate-pulse">(Weaving...)</span>}
+                              </span>
+                            </div>
+                            {synthesizedPreview || episodes.find(e => e.status === 'draft')?.content ? (
+                              <p className="whitespace-pre-wrap">
+                                {synthesizedPreview || episodes.find(e => e.status === 'draft')?.content}
+                              </p>
+                            ) : (
+                              <p className="text-stone-500 italic text-xs">
+                                {isSynthesizing ? "The spirits are weaving the threads..." : "Click the button above to synthesize the story sparks into a coherent narrative."}
+                              </p>
+                            )}
+                          </div>
+                        )
+                        : "No winning lines have been chosen yet."}
+                    </div>
+                  )}
+                </div>
 
-                 {loadingEpisodes ? (
-                   <div className="text-stone-500 text-sm">Translating ancient scrolls...</div>
-                 ) : episodes.length === 0 ? (
-                   <div className="text-stone-500 text-sm italic bg-white/[0.02] border border-white/5 rounded-xl p-6 text-center">
-                     No episodes have been compiled yet. The story is just beginning...
-                   </div>
-                 ) : (
-                   episodes.map(ep => (
-                     <div key={ep._id} className={`p-6 rounded-xl border ${ep.status === 'published' ? 'bg-indigo-950/20 border-indigo-500/20 shadow-lg shadow-indigo-900/5' : 'bg-amber-950/10 border-amber-500/20 border-dashed bg-white/[0.01]'}`}>
-                       <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
-                         <h3 className={`font-serif text-xl ${ep.status === 'published' ? 'text-indigo-200' : 'text-amber-200'}`}>
-                           Episode {ep.episodeNumber}
-                         </h3>
-                         <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${ep.status === 'published' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-amber-500/20 text-amber-300'}`}>
-                           {ep.status === 'published' ? 'Published' : 'Current (Demo)'}
-                         </span>
-                       </div>
-                       
-                       <div className="space-y-4 text-stone-300 text-sm leading-relaxed">
-                          {ep.content ? (
-                            <div className="whitespace-pre-wrap leading-relaxed">
-                              {ep.content}
-                            </div>
-                          ) : ep.parts && ep.parts.length > 0 ? (
-                            <div className="space-y-3">
-                              {ep.parts.map((part: any, i: number) => (
-                                <p key={i} className={`${part.type === 'gap' ? 'text-stone-500 italic' : ''}`}>
-                                  {part.text}
-                                </p>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-stone-500 italic">This episode is forming...</p>
-                          )}
-                        </div>
-                     </div>
-                   ))
-                 )}
-               </div>
+                {loadingEpisodes ? (
+                  <div className="text-stone-500 text-sm">Translating ancient scrolls...</div>
+                ) : episodes.length === 0 ? (
+                  <div className="text-stone-500 text-sm italic bg-white/[0.02] border border-white/5 rounded-xl p-6 text-center">
+                    No episodes have been compiled yet. The story is just beginning...
+                  </div>
+                ) : (
+                  episodes.map((ep: any) => (
+                    <div key={ep._id} className={`p-6 rounded-xl border ${ep.status === 'published' ? 'bg-indigo-950/20 border-indigo-500/20 shadow-lg shadow-indigo-900/5' : 'bg-amber-950/10 border-amber-500/20 border-dashed bg-white/[0.01]'}`}>
+                      <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
+                        <h3 className={`font-serif text-xl ${ep.status === 'published' ? 'text-indigo-200' : 'text-amber-200'}`}>
+                          Episode {ep.episodeNumber}
+                        </h3>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${ep.status === 'published' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                          {ep.status === 'published' ? 'Published' : 'Current (Demo)'}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-4 text-stone-300 text-sm leading-relaxed">
+                        {ep.content ? (
+                          <div className="whitespace-pre-wrap leading-relaxed">
+                            {ep.content}
+                          </div>
+                        ) : ep.parts && ep.parts.length > 0 ? (
+                          <div className="space-y-3">
+                            {ep.parts.map((part: any, i: number) => (
+                              <p key={i} className={`${part.type === 'gap' ? 'text-stone-500 italic' : ''}`}>
+                                {part.text}
+                              </p>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-stone-500 italic">This episode is forming...</p>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             )}
           </section>
         </div>

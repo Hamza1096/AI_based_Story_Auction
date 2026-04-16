@@ -4,32 +4,41 @@ import { AUCTION_CONFIG } from "./auctionConfig";
  * Synthesizes multiple story parts into a coherent narrative using AI.
  */
 export async function synthesizeEpisodeContent(parts: string[], storyContext: { title: string; genre: string; description: string }) {
-  const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
+  // Check for both possible environment variable names
+  const apiKey = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
 
-  if (!apiKey || parts.length === 0) {
+  if (!apiKey) {
+    console.warn("[AI Synthesis] Missing GROQ_API_KEY. Falling back to simple concatenation.");
     return parts.join("\n\n");
   }
 
-  // If there's only one part, maybe we don't need synthesis, but even one part can be polished.
-  // However, the cost/latency might not be worth it for a single part unless requested.
+  if (parts.length === 0) {
+    return "";
+  }
+
+  // Even for one part, we might want to polish it to fit the title/genre context,
+  // but for now we'll just return it if it's the only thread.
   if (parts.length === 1) {
     return parts[0];
   }
 
-  const systemPrompt = `You are an expert ghostwriter and story editor. 
-Your task is to take a series of winning story fragments (which were individual daily winning bids) and weave them into a single, seamless, and coherent narrative episode.
-Ensure the transitions between fragments are natural and the prose flows elegantly. 
-Maintain the original tone and plot points strictly. Do not add major new plot elements, but you may add minor connecting phrases or descriptive texture to ensure coherence.
-Output ONLY the final polished narrative. No meta-commentary.`;
+  const systemPrompt = `You are an elite literary editor and ghostwriter. 
+Your goal is to transform a collection of disjointed story fragments into a single, fluid, and compelling narrative episode.
+
+STRICT GUIDELINES:
+1. NARRATIVE FLOW: Transform the fragments into a coherent story. Do NOT just list them. Use professional transitions.
+2. CONTEXT: Adhere strictly to the Story Title: "${storyContext.title}", Genre: "${storyContext.genre}", and Premise provided.
+3. INTEGRITY: Preserve all key plot points and character actions from the fragments. Do not delete important details.
+4. STYLE: Use evocative, immersive prose suitable for the genre.
+5. NO META-COMMENTARY: Output only the story text. No "Here is the story" or "I have woven the fragments".`;
 
   const userPrompt = `
-Story Title: ${storyContext.title}
-Genre: ${storyContext.genre}
 Premise: ${storyContext.description}
 
-Story Fragments to weave together:
-${parts.map((p, i) => `Fragment ${i + 1}: ${p}`).join("\n\n")}
-`;
+Daily Winning Fragments to weave together:
+${parts.map((p, i) => `[Fragment ${i + 1}]: ${p}`).join("\n\n")}
+
+WEAVE THEM NOW:`;
 
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -45,19 +54,27 @@ ${parts.map((p, i) => `Fragment ${i + 1}: ${p}`).join("\n\n")}
           { role: "user", content: userPrompt },
         ],
         temperature: 0.7,
-        max_tokens: 1500,
+        max_tokens: 2000,
       }),
     });
 
     if (!response.ok) {
-      console.error("[AI Synthesis] Groq API error:", await response.text());
+      const errorText = await response.text();
+      console.error("[AI Synthesis] Groq API error:", response.status, errorText);
       return parts.join("\n\n");
     }
 
     const data = await response.json();
-    return data.choices[0].message.content.trim();
+    const synthesized = data.choices[0]?.message?.content?.trim();
+    
+    if (!synthesized) {
+      console.error("[AI Synthesis] Empty response from Groq");
+      return parts.join("\n\n");
+    }
+
+    return synthesized;
   } catch (error) {
-    console.error("[AI Synthesis] Error:", error);
+    console.error("[AI Synthesis] Unexpected error:", error);
     return parts.join("\n\n");
   }
 }
