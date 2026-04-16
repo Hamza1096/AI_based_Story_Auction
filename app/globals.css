@@ -32,7 +32,7 @@ html.light {
 
 html.light body {
   background: linear-gradient(135deg, #F7F6F3 0%, #F1EFEA 100%) !important;
-  color: #1F2933;
+  color: #000000;
   -webkit-font-smoothing: auto;
 }
 
