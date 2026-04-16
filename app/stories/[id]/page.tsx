@@ -104,6 +104,7 @@ export default function StoryDetailPage() {
   const [loadingEpisodes, setLoadingEpisodes] = useState(true);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [synthesizedPreview, setSynthesizedPreview] = useState<string | null>(null);
+  const [showEpisodePreview, setShowEpisodePreview] = useState(false);
 
   // Countdown State
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
@@ -700,12 +701,31 @@ export default function StoryDetailPage() {
                             Episode {ep.episodeNumber}
                           </h3>
                           <div className="flex flex-col items-end gap-1">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${isDraft ? 'bg-amber-500/20 text-amber-300' : 'bg-indigo-500/20 text-indigo-300'}`}>
-                              {isDraft ? 'Episode in Progress' : 'Published'}
-                            </span>
-                            {isDraft && (
-                              <span className="text-[9px] text-amber-500/60 font-medium animate-pulse">
-                                Weaving in progress...
+                            {isDraft ? (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={async () => {
+                                    if (!showEpisodePreview) {
+                                      if (!synthesizedPreview) {
+                                        await handleSynthesizeDraft();
+                                      }
+                                      setShowEpisodePreview(true);
+                                    } else {
+                                      setShowEpisodePreview(false);
+                                    }
+                                  }}
+                                  disabled={isSynthesizing}
+                                  className="px-2 py-1 text-[10px] bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/20 text-amber-300 rounded-md transition-colors uppercase tracking-wider font-bold"
+                                >
+                                  {isSynthesizing ? 'Weaving...' : showEpisodePreview ? 'Hide' : 'AI Preview'}
+                                </button>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold bg-amber-500/20 text-amber-300`}>
+                                  Episode in Progress
+                                </span>
+                              </div>
+                            ) : (
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold bg-indigo-500/20 text-indigo-300`}>
+                                Published
                               </span>
                             )}
                           </div>
@@ -714,20 +734,13 @@ export default function StoryDetailPage() {
                         <div className="space-y-4 text-stone-300 text-sm leading-relaxed">
                           {isDraft ? (
                             <>
-                              {synthesizedPreview ? (
+                              {showEpisodePreview && synthesizedPreview ? (
                                 <div className="whitespace-pre-wrap leading-relaxed font-serif text-lg text-stone-200/90 selection:bg-amber-500/30">
                                   {synthesizedPreview}
                                 </div>
                               ) : (
                                 <div className="py-8 text-center bg-white/[0.01] rounded-lg border border-dashed border-white/5">
                                   <p className="text-stone-500 italic mb-3">This episode is forming over the week. You can see how it will be stitched together.</p>
-                                  <button
-                                    onClick={handleSynthesizeDraft}
-                                    disabled={isSynthesizing}
-                                    className="px-4 py-2 text-xs bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/20 text-amber-300 rounded-md transition-colors"
-                                  >
-                                    {isSynthesizing ? "Scribe is weaving..." : "Preview AI Version"}
-                                  </button>
                                 </div>
                               )}
                             </>
