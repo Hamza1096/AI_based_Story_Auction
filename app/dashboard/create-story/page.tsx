@@ -265,7 +265,7 @@ export default function CreateStoryPage() {
                   <span className="ml-2 text-xs text-stone-500 font-normal">(optional, up to 10)</span>
                 </label>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  Define constraints for participants — e.g., "No time travel" or "Stay in the Victorian era."
+                  Define constraints for participants — e.g., &quot;No time travel&quot; or &quot;Stay in the Victorian era.&quot;
                 </p>
               </div>
             </div>

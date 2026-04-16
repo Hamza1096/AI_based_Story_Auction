@@ -69,7 +69,7 @@ export default function LoginPage() {
         {/* Story Quotes */}
         <div className="relative z-20 max-w-xl mx-auto text-center space-y-10">
           <p className="text-amber-50 font-serif italic text-2xl md:text-3xl leading-relaxed tracking-wide shadow-sm opacity-90">
-            "Every story begins with a choice. Which path will you weave?"
+            &quot;Every story begins with a choice. Which path will you weave?&quot;
           </p>
           <div className="w-16 h-px bg-amber-700/50 mx-auto"></div>
           <div className="text-teal-100/60 font-serif tracking-widest text-sm uppercase">AI-Auction Platform</div>
@@ -185,8 +185,7 @@ export default function LoginPage() {
 
           <div className="mt-8 text-center">
             <p className="text-sm text-stone-500 font-serif">
-              Your tale hasn't begun?{' '}
-              <Link
+              Your tale hasn&apos;t begun? <Link
                 href="/register"
                 className="text-amber-500 hover:text-amber-400 transition-colors border-b border-transparent hover:border-amber-500 pb-0.5 italic"
               >
